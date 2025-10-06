@@ -1,5 +1,10 @@
 # Zero-Config Echo API to MCP
 
+[![Build Status](https://github.com/BrunoKrugel/echo-mcp/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/features/actions)
+[![Codecov branch](https://img.shields.io/codecov/c/github/BrunoKrugel/echo-mcp/master.svg)](https://codecov.io/gh/BrunoKrugel/echo-mcp)
+[![Go Report Card](https://goreportcard.com/badge/github.com/BrunoKrugel/echo-mcp)](https://goreportcard.com/report/github.com/BrunoKrugel/echo-mcp)
+[![Release](https://img.shields.io/github/release/BrunoKrugel/echo-mcp.svg?style=flat-square)](https://github.com/BrunoKrugel/echo-mcp/releases)
+
 Adapt any existing Echo API into MCP tools in seconds, enabling AI assistants to interact with your API through [Model Context Protocol](https://modelcontextprotocol.io/introduction).
 
 Inspired by [gin-mcp](https://github.com/ckanthony/gin-mcp) but for the [Echo framework](https://echo.labstack.com/).
@@ -18,8 +23,6 @@ go get github.com/BrunoKrugel/echo-mcp
 ```
 
 ## Quick Start
-
-### Basic Usage (30 seconds)
 
 ```go
 package main
@@ -40,9 +43,7 @@ func main() {
 
 
     // Add MCP support (this is all you need!)
-    mcp := server.New(e, &server.Config{
-        BaseURL: "http://localhost:8080",
-    })
+    mcp := server.New(e)
     mcp.Mount("/mcp")
 
     e.Start(":8080")
@@ -73,7 +74,7 @@ func main() {
     e.GET("/users/:id", GetUser)
 
     // Enable automatic swagger schema generation
-    mcp := server.New(e, &server.Config{
+    mcp := server.NewWithConfig(e, &server.Config{
         BaseURL:              "http://localhost:8080",
         EnableSwaggerSchemas: true,
     })
@@ -88,9 +89,7 @@ func main() {
 Control which endpoints become MCP tools:
 
 ```go
-mcp := server.New(e, &server.Config{
-    BaseURL: "http://localhost:8080",
-})
+mcp := server.New(e)
 
 // Include only specific endpoints
 mcp.RegisterEndpoints([]string{
