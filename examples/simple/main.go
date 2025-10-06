@@ -20,7 +20,7 @@ type AppError struct {
 }
 
 type User struct {
-	ID string `json:"id"`
+	ID string `json:"id" validate:"required"`
 }
 
 // @title			Echo-MCP Swagger Example API
@@ -54,12 +54,7 @@ func main() {
 	e.GET("/swagger/*", echoSwagger.EchoWrapHandler())
 
 	// Create and configure the MCP server
-	mcp := server.New(e, &server.Config{
-		Name:                 "My Simple Echo API",
-		Description:          "An example Echo API automatically exposed via MCP.",
-		BaseURL:              "http://localhost:8080", //API endpoint
-		EnableSwaggerSchemas: true,
-	})
+	mcp := server.New(e)
 
 	// Example 1: Include only specific endpoints
 	// Uncomment one of these examples:

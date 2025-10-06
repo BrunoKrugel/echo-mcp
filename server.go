@@ -53,7 +53,7 @@ type Config struct {
 }
 
 // New creates a new EchoMCP instance
-func New(e *echo.Echo, config *Config) *EchoMCP {
+func NewWithConfig(e *echo.Echo, config *Config) *EchoMCP {
 	if config == nil {
 		config = &Config{}
 	}
@@ -90,6 +90,49 @@ func New(e *echo.Echo, config *Config) *EchoMCP {
 	}
 
 	// Set default execute function (in the future )
+	echoMCP.executeToolFunc = echoMCP.defaultExecuteTool
+
+	return echoMCP
+}
+
+// New creates a new EchoMCP instance
+func New(e *echo.Echo) *EchoMCP {
+	config := &Config{
+		EnableSwaggerSchemas: true,
+	}
+
+	// Auto-populate name, description, and version from Swagger if available and not provided
+	name := config.Name
+	description := config.Description
+	version := config.Version
+
+	if config.EnableSwaggerSchemas && (name == "" || description == "" || version == "") {
+		if spec, err := swagger.GetSwaggerSpec(); err == nil && spec.Info != nil {
+			if name == "" && spec.Info.Title != "" {
+				name = spec.Info.Title
+			}
+			if description == "" && spec.Info.Description != "" {
+				description = spec.Info.Description
+			}
+			if version == "" && spec.Info.Version != "" {
+				version = spec.Info.Version
+			}
+		}
+	}
+
+	echoMCP := &EchoMCP{
+		echo:              e,
+		name:              name,
+		version:           version,
+		description:       description,
+		baseURL:           config.BaseURL,
+		config:            config,
+		registeredSchemas: make(map[string]types.RegisteredSchemaInfo),
+		tools:             []types.Tool{},
+		operations:        make(map[string]types.Operation),
+	}
+
+	// Set default execute function (in the future we should handle SSE)
 	echoMCP.executeToolFunc = echoMCP.defaultExecuteTool
 
 	return echoMCP
@@ -150,7 +193,7 @@ func (e *EchoMCP) setupServer() error {
 	// Get routes from Echo
 	routes := e.echo.Routes()
 
-	// Filter routes if needed (implement filtering logic similar to gin-mcp)
+	// Filter routes
 	filteredRoutes := e.filterRoutes(routes)
 
 	// Convert routes to tools
