@@ -19,7 +19,6 @@ import (
 	"github.com/BrunoKrugel/echo-mcp/pkg/types"
 )
 
-// EchoMCP represents the MCP server configuration for an Echo application
 type EchoMCP struct {
 	transport         transport.Transport
 	echo              *echo.Echo
@@ -36,7 +35,6 @@ type EchoMCP struct {
 	schemasMu         sync.RWMutex
 }
 
-// Config represents the configuration options for EchoMCP
 type Config struct {
 	Name                       string
 	Description                string

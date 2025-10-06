@@ -94,7 +94,7 @@ func main() {
 //	@produces	json
 //	@Param		Request	body		main.PingPong	true	"Request body"
 //	@Success	200		{object}	main.PingPong
-//	@Router		/Ping [GET]
+//	@Router		/ping [GET]
 func PongHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, PingPong{"pong"})
 }

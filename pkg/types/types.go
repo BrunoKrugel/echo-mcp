@@ -206,12 +206,12 @@ func applySchemaTag(fieldSchema map[string]any, tag string) {
 		if after, ok := strings.CutPrefix(part, "description="); ok {
 			fieldSchema["description"] = after
 		} else if after0, ok0 := strings.CutPrefix(part, "minimum="); ok0 {
-			if min, err := strconv.ParseFloat(after0, 64); err == nil {
-				fieldSchema["minimum"] = min
+			if minimum, err := strconv.ParseFloat(after0, 64); err == nil {
+				fieldSchema["minimum"] = minimum
 			}
 		} else if after1, ok1 := strings.CutPrefix(part, "maximum="); ok1 {
-			if max, err := strconv.ParseFloat(after1, 64); err == nil {
-				fieldSchema["maximum"] = max
+			if maximum, err := strconv.ParseFloat(after1, 64); err == nil {
+				fieldSchema["maximum"] = maximum
 			}
 		}
 	}
