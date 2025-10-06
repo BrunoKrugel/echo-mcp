@@ -12,7 +12,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// HTTPTransport implements MCP over HTTP (Streamable HTTP transport)
 type HTTPTransport struct {
 	handlers  map[string]MessageHandler
 	sessions  map[string]*Session
@@ -20,7 +19,6 @@ type HTTPTransport struct {
 	mu        sync.RWMutex
 }
 
-// Session represents an HTTP session
 type Session struct {
 	ID      string
 	Created int64
@@ -49,15 +47,12 @@ func (h *HTTPTransport) MountPath() string {
 
 // HandleConnection handles incoming MCP connections (not used in HTTP transport)
 func (h *HTTPTransport) HandleConnection(c echo.Context) error {
-	// HTTP transport doesn't use persistent connections like SSE
-	// This method exists for interface compatibility but should not be called
 	return echo.NewHTTPError(http.StatusMethodNotAllowed, "GET method not supported for HTTP transport")
 }
 
 // HandleMessage processes incoming MCP messages via POST
 func (h *HTTPTransport) HandleMessage(c echo.Context) error {
 
-	// Handle session management
 	sessionID := c.Request().Header.Get("Mcp-Session-Id")
 
 	var msg types.MCPMessage
@@ -65,26 +60,16 @@ func (h *HTTPTransport) HandleMessage(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid message format")
 	}
 
-	// Special handling for initialize requests
 	if msg.Method == "initialize" {
 		return h.handleInitialize(c, &msg)
 	}
 
-	// For other requests, validate session if we're using sessions
 	if sessionID != "" && !h.isValidSession(sessionID) {
 		return echo.NewHTTPError(http.StatusNotFound, "Session not found")
 	}
 
-	// Process the message
 	response := h.processMessage(&msg)
 
-	// Set session ID header if this is a new session
-	if sessionID == "" && msg.Method == "initialize" {
-		newSessionID := h.createSession()
-		c.Response().Header().Set("Mcp-Session-Id", newSessionID)
-	}
-
-	// Return the response directly
 	return c.JSON(http.StatusOK, response)
 }
 
@@ -92,7 +77,6 @@ func (h *HTTPTransport) HandleMessage(c echo.Context) error {
 func (h *HTTPTransport) handleInitialize(c echo.Context, msg *types.MCPMessage) error {
 	response := h.processMessage(msg)
 
-	// Create a new session for this client
 	sessionID := h.createSession()
 	c.Response().Header().Set("Mcp-Session-Id", sessionID)
 

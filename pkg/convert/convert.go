@@ -3,6 +3,7 @@ package convert
 import (
 	"fmt"
 	"maps"
+	"net/http"
 	"regexp"
 	"strings"
 
@@ -34,9 +35,19 @@ func ConvertRoutesToTools(routes []*echo.Route, registeredSchemas map[string]typ
 		tool := generateTool(route, operationID, registeredSchemas, swaggerSpec)
 		tools = append(tools, tool)
 
+		// Extract header and query parameters from swagger if available
+		var headerParams []string
+		var queryParams []string
+		if swaggerSpec != nil {
+			headerParams = extractHeaderParameters(route, swaggerSpec)
+			queryParams = extractQueryParameters(route, swaggerSpec)
+		}
+
 		operations[operationID] = types.Operation{
-			Method: route.Method,
-			Path:   route.Path,
+			Method:       route.Method,
+			Path:         route.Path,
+			HeaderParams: headerParams,
+			QueryParams:  queryParams,
 		}
 	}
 
@@ -161,7 +172,7 @@ func generateInputSchema(route *echo.Route, registeredSchema types.RegisteredSch
 // isBodyMethod returns true if the HTTP method typically has a request body
 func isBodyMethod(method string) bool {
 	method = strings.ToUpper(method)
-	return method == "POST" || method == "PUT" || method == "PATCH"
+	return method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch
 }
 
 // extractPathParameters extracts parameter names from an Echo route path
@@ -187,14 +198,21 @@ func getHandlerDescription(route *echo.Route) string {
 	return fmt.Sprintf("Execute %s %s", route.Method, route.Path)
 }
 
+// echoPathToSwaggerPath converts Echo path syntax (:id) to Swagger path syntax ({id})
+func echoPathToSwaggerPath(echoPath string) string {
+	re := regexp.MustCompile(`:(\w+)`)
+	return re.ReplaceAllString(echoPath, "{$1}")
+}
+
 // getSwaggerDescription gets the description from swagger specification
 func getSwaggerDescription(route *echo.Route, swaggerSpec *swagger.SwaggerSpec) string {
 	if swaggerSpec == nil {
 		return ""
 	}
 
-	// Try to find the path in swagger spec
-	if pathSpec, exists := swaggerSpec.Paths[route.Path]; exists {
+	swaggerPath := echoPathToSwaggerPath(route.Path)
+
+	if pathSpec, exists := swaggerSpec.Paths[swaggerPath]; exists {
 		method := strings.ToLower(route.Method)
 		if operation, exists := pathSpec[method]; exists {
 			if operation.Summary != "" {
@@ -207,4 +225,52 @@ func getSwaggerDescription(route *echo.Route, swaggerSpec *swagger.SwaggerSpec) 
 	}
 
 	return ""
+}
+
+// extractHeaderParameters extracts header parameter names from swagger specification
+func extractHeaderParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSpec) []string {
+	var headerParams []string
+
+	if swaggerSpec == nil {
+		return headerParams
+	}
+
+	swaggerPath := echoPathToSwaggerPath(route.Path)
+
+	if pathSpec, exists := swaggerSpec.Paths[swaggerPath]; exists {
+		method := strings.ToLower(route.Method)
+		if operation, exists := pathSpec[method]; exists {
+			for _, param := range operation.Parameters {
+				if param.In == "header" {
+					headerParams = append(headerParams, param.Name)
+				}
+			}
+		}
+	}
+
+	return headerParams
+}
+
+// extractQueryParameters extracts query parameter names from swagger specification
+func extractQueryParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSpec) []string {
+	var queryParams []string
+
+	if swaggerSpec == nil {
+		return queryParams
+	}
+
+	swaggerPath := echoPathToSwaggerPath(route.Path)
+
+	if pathSpec, exists := swaggerSpec.Paths[swaggerPath]; exists {
+		method := strings.ToLower(route.Method)
+		if operation, exists := pathSpec[method]; exists {
+			for _, param := range operation.Parameters {
+				if param.In == "query" {
+					queryParams = append(queryParams, param.Name)
+				}
+			}
+		}
+	}
+
+	return queryParams
 }

@@ -3,29 +3,27 @@ package swagger
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
+	"regexp"
 	"strings"
 
 	"github.com/swaggo/swag"
 )
 
-// SwaggerSpec represents a simplified swagger specification
 type SwaggerSpec struct {
 	Paths   map[string]SwaggerPath `json:"paths"`
 	Info    *SwaggerInfo           `json:"info"`
 	Swagger string                 `json:"swagger"`
 }
 
-// SwaggerInfo represents swagger info section
 type SwaggerInfo struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Version     string `json:"version"`
 }
 
-// SwaggerPath represents swagger path operations
 type SwaggerPath map[string]SwaggerOperation
 
-// SwaggerOperation represents a swagger operation
 type SwaggerOperation struct {
 	Responses   map[string]SwaggerResponse `json:"responses"`
 	Summary     string                     `json:"summary"`
@@ -34,7 +32,6 @@ type SwaggerOperation struct {
 	Parameters  []SwaggerParameter         `json:"parameters"`
 }
 
-// SwaggerParameter represents a swagger parameter
 type SwaggerParameter struct {
 	Schema      *SwaggerSchema `json:"schema,omitempty"`
 	Name        string         `json:"name"`
@@ -44,13 +41,11 @@ type SwaggerParameter struct {
 	Required    bool           `json:"required"`
 }
 
-// SwaggerResponse represents a swagger response
 type SwaggerResponse struct {
 	Schema      *SwaggerSchema `json:"schema,omitempty"`
 	Description string         `json:"description"`
 }
 
-// SwaggerSchema represents a swagger schema definition
 type SwaggerSchema struct {
 	Properties           map[string]*SwaggerSchema `json:"properties,omitempty"`
 	AdditionalProperties *SwaggerSchema            `json:"additionalProperties,omitempty"`
@@ -64,13 +59,12 @@ type SwaggerSchema struct {
 
 // GetSwaggerSpec retrieves the swagger specification from swaggo
 func GetSwaggerSpec() (*SwaggerSpec, error) {
-	// Try to get swagger info from swaggo registry
+
 	info := swag.GetSwagger("swagger")
 	if info == nil {
 		return nil, fmt.Errorf("swagger documentation not found - make sure to import docs package and generate swagger")
 	}
 
-	// Parse the swagger template
 	swaggerJSON := info.ReadDoc()
 	if swaggerJSON == "" {
 		return nil, fmt.Errorf("swagger documentation is empty")
@@ -84,20 +78,28 @@ func GetSwaggerSpec() (*SwaggerSpec, error) {
 	return &spec, nil
 }
 
+// echoPathToSwaggerPath converts Echo path syntax (:id) to Swagger path syntax ({id})
+func echoPathToSwaggerPath(echoPath string) string {
+	re := regexp.MustCompile(`:(\w+)`)
+	return re.ReplaceAllString(echoPath, "{$1}")
+}
+
 // GetOperationSchema returns the MCP schema for a specific operation
 func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any, error) {
 	// Normalize method
 	method = strings.ToLower(method)
 
-	// Find the path in swagger spec
-	swaggerPath, exists := spec.Paths[path]
+	// Convert Echo path to Swagger path format
+	swaggerPath := echoPathToSwaggerPath(path)
+
+	pathSpec, exists := spec.Paths[swaggerPath]
 	if !exists {
-		return nil, fmt.Errorf("path %s not found in swagger spec", path)
+		return nil, fmt.Errorf("path %s not found in swagger spec", swaggerPath)
 	}
 
-	operation, exists := swaggerPath[method]
+	operation, exists := pathSpec[method]
 	if !exists {
-		return nil, fmt.Errorf("method %s not found for path %s in swagger spec", method, path)
+		return nil, fmt.Errorf("method %s not found for path %s in swagger spec", method, swaggerPath)
 	}
 
 	// Build MCP schema from swagger operation
@@ -111,13 +113,15 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 
 	// Process parameters
 	for _, param := range operation.Parameters {
-		if param.In == "path" || param.In == "query" {
+		if param.In == "path" || param.In == "query" || param.In == "header" {
 			propSchema := map[string]any{
 				"type": param.Type,
 			}
 
 			if param.Description != "" {
 				propSchema["description"] = param.Description
+			} else if param.In == "header" {
+				propSchema["description"] = fmt.Sprintf("Header parameter: %s", param.Name)
 			}
 
 			properties[param.Name] = propSchema
@@ -130,9 +134,7 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 			bodyProps := convertSwaggerSchemaToMCP(param.Schema)
 			if bodySchema, ok := bodyProps.(map[string]any); ok {
 				if props, ok := bodySchema["properties"].(map[string]any); ok {
-					for key, value := range props {
-						properties[key] = value
-					}
+					maps.Copy(properties, props)
 				}
 				if reqFields, ok := bodySchema["required"].([]string); ok {
 					required = append(required, reqFields...)

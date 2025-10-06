@@ -8,6 +8,7 @@ import (
 	"maps"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/BrunoKrugel/echo-mcp/pkg/convert"
+	"github.com/BrunoKrugel/echo-mcp/pkg/swagger"
 	"github.com/BrunoKrugel/echo-mcp/pkg/transport"
 	"github.com/BrunoKrugel/echo-mcp/pkg/types"
 )
@@ -27,6 +29,7 @@ type EchoMCP struct {
 	registeredSchemas map[string]types.RegisteredSchemaInfo
 	executeToolFunc   func(operationID string, parameters map[string]any) (any, error)
 	name              string
+	version           string
 	description       string
 	baseURL           string
 	tools             []types.Tool
@@ -37,6 +40,7 @@ type EchoMCP struct {
 
 type Config struct {
 	Name                       string
+	Version                    string
 	Description                string
 	BaseURL                    string
 	IncludeOperations          []string
@@ -54,10 +58,30 @@ func New(e *echo.Echo, config *Config) *EchoMCP {
 		config = &Config{}
 	}
 
+	// Auto-populate name, description, and version from Swagger if available and not provided
+	name := config.Name
+	description := config.Description
+	version := config.Version
+
+	if config.EnableSwaggerSchemas && (name == "" || description == "" || version == "") {
+		if spec, err := swagger.GetSwaggerSpec(); err == nil && spec.Info != nil {
+			if name == "" && spec.Info.Title != "" {
+				name = spec.Info.Title
+			}
+			if description == "" && spec.Info.Description != "" {
+				description = spec.Info.Description
+			}
+			if version == "" && spec.Info.Version != "" {
+				version = spec.Info.Version
+			}
+		}
+	}
+
 	echoMCP := &EchoMCP{
 		echo:              e,
-		name:              config.Name,
-		description:       config.Description,
+		name:              name,
+		version:           version,
+		description:       description,
 		baseURL:           config.BaseURL,
 		config:            config,
 		registeredSchemas: make(map[string]types.RegisteredSchemaInfo),
@@ -65,7 +89,7 @@ func New(e *echo.Echo, config *Config) *EchoMCP {
 		operations:        make(map[string]types.Operation),
 	}
 
-	// Set default execute function
+	// Set default execute function (in the future )
 	echoMCP.executeToolFunc = echoMCP.defaultExecuteTool
 
 	return echoMCP
@@ -217,6 +241,11 @@ func (e *EchoMCP) matchesEndpoint(routePath, pattern string) bool {
 
 // handleInitialize handles MCP initialize requests
 func (e *EchoMCP) handleInitialize(params any) (any, error) {
+	version := e.version
+	if version == "" {
+		version = "1.0.0" // Fallback default
+	}
+
 	return InitializeResponse{
 		ProtocolVersion: "2024-11-05",
 		Capabilities: &Capabilities{
@@ -224,7 +253,7 @@ func (e *EchoMCP) handleInitialize(params any) (any, error) {
 		},
 		ServerInfo: &ServerInfo{
 			Name:    e.name,
-			Version: "1.0.0",
+			Version: version,
 		},
 	}, nil
 }
@@ -280,15 +309,17 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 	}
 
 	// Build the request URL
-	requestURL := e.buildRequestURL(operation.Path, parameters)
+	requestURL := e.buildRequestURL(operation, parameters)
 
 	// Create HTTP request
 	var body io.Reader
 	if isBodyMethod(operation.Method) {
-		// Extract body parameters
+		// Extract body parameters (exclude path, header, and query parameters)
 		bodyData := make(map[string]any)
 		for key, value := range parameters {
-			if !isPathParameter(operation.Path, key) {
+			if !isPathParameter(operation.Path, key) &&
+				!isHeaderParameter(operation, key) &&
+				!isQueryParameter(operation, key) {
 				bodyData[key] = value
 			}
 		}
@@ -309,6 +340,13 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
+	}
+
+	// Add header parameters
+	for key, value := range parameters {
+		if isHeaderParameter(operation, key) {
+			req.Header.Set(key, fmt.Sprintf("%v", value))
+		}
 	}
 
 	// Execute request
@@ -340,14 +378,14 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 }
 
 // buildRequestURL builds the complete request URL with path and query parameters
-func (e *EchoMCP) buildRequestURL(path string, parameters map[string]any) string {
+func (e *EchoMCP) buildRequestURL(operation types.Operation, parameters map[string]any) string {
 	baseURL := e.baseURL
 	if baseURL == "" {
 		baseURL = "http://localhost:8080" // Default
 	}
 
 	// Replace path parameters
-	finalPath := path
+	finalPath := operation.Path
 	for key, value := range parameters {
 		placeholder := ":" + key
 		if strings.Contains(finalPath, placeholder) {
@@ -355,10 +393,10 @@ func (e *EchoMCP) buildRequestURL(path string, parameters map[string]any) string
 		}
 	}
 
-	// Build query parameters
+	// Build query parameters (only include explicit query parameters)
 	queryParams := url.Values{}
 	for key, value := range parameters {
-		if !isPathParameter(path, key) && !isBodyMethod(e.getMethodForPath(path)) {
+		if isQueryParameter(operation, key) {
 			queryParams.Add(key, fmt.Sprintf("%v", value))
 		}
 	}
@@ -381,21 +419,15 @@ func isPathParameter(path, paramName string) bool {
 	return strings.Contains(path, ":"+paramName)
 }
 
-func (e *EchoMCP) getMethodForPath(path string) string {
-	for _, operation := range e.operations {
-		if operation.Path == path {
-			return operation.Method
-		}
-	}
-	return "GET" // Default
+func isHeaderParameter(operation types.Operation, paramName string) bool {
+	return slices.Contains(operation.HeaderParams, paramName)
 }
 
-// BaseURLResolver interface for dynamic base URL resolution
-type BaseURLResolver interface {
-	ResolveBaseURL() (string, error)
+func isQueryParameter(operation types.Operation, paramName string) bool {
+	return slices.Contains(operation.QueryParams, paramName)
 }
 
-// QuicknodeResolver resolves base URLs for Quicknode environments
-type QuicknodeResolver struct {
-	fallbackURL string
+// GetServerInfo returns the server information (useful for testing)
+func (e *EchoMCP) GetServerInfo() (name, version, description string) {
+	return e.name, e.version, e.description
 }

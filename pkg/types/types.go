@@ -8,38 +8,13 @@ import (
 	"strings"
 )
 
-// RawMessage is a raw encoded JSON value.
-// It implements Marshaler and Unmarshaler and can
-// be used to delay JSON decoding or precompute a JSON encoding.
-// Defined as its own type based on json.RawMessage to be available
-// for use in other packages (like server.go) without modifying them.
-type RawMessage json.RawMessage
-
-// MarshalJSON returns m as the JSON encoding of m.
-func (m RawMessage) MarshalJSON() ([]byte, error) {
-	if m == nil {
-		return []byte("null"), nil
-	}
-	return m, nil
-}
-
-// UnmarshalJSON sets *m to a copy of data.
-func (m *RawMessage) UnmarshalJSON(data []byte) error {
-	if m == nil {
-		return fmt.Errorf("cannot unmarshal into nil RawMessage")
-	}
-	*m = append((*m)[0:0], data...)
-	return nil
-}
-
-// MCPMessage represents a generic MCP message structure
 type MCPMessage struct {
-	Params  any        `json:"params,omitempty"`
-	Result  any        `json:"result,omitempty"`
-	Error   *MCPError  `json:"error,omitempty"`
-	Jsonrpc string     `json:"jsonrpc"`
-	Method  string     `json:"method,omitempty"`
-	ID      RawMessage `json:"id,omitempty"`
+	Params  any             `json:"params,omitempty"`
+	Result  any             `json:"result,omitempty"`
+	Error   *MCPError       `json:"error,omitempty"`
+	Jsonrpc string          `json:"jsonrpc"`
+	Method  string          `json:"method,omitempty"`
+	ID      json.RawMessage `json:"id,omitempty"`
 }
 
 // MCPError represents an MCP error
@@ -58,10 +33,12 @@ type Tool struct {
 
 // Operation represents internal operation details for a tool
 type Operation struct {
-	Parameters  map[string]any
-	Method      string
-	Path        string
-	Description string
+	Parameters   map[string]any
+	Method       string
+	Path         string
+	Description  string
+	HeaderParams []string
+	QueryParams  []string
 }
 
 // RegisteredSchemaInfo holds information about manually registered schemas
@@ -132,12 +109,10 @@ func GetSchema(input any) map[string]any {
 
 		fieldSchema := reflectType(field.Type)
 
-		// Check for jsonschema tags
 		if schemaTag := field.Tag.Get("jsonschema"); schemaTag != "" {
 			applySchemaTag(fieldSchema, schemaTag)
 		}
 
-		// Check if field is required
 		formTag := field.Tag.Get("form")
 		if strings.Contains(jsonTag, "required") || strings.Contains(formTag, "required") || strings.Contains(field.Tag.Get("jsonschema"), "required") {
 			required = append(required, fieldName)
