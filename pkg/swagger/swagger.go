@@ -1,11 +1,14 @@
+// Package swagger provides utilities for parsing Swagger/OpenAPI documentation
+// and converting it to MCP-compatible schemas. It handles $ref resolution,
+// schema conversion, and extraction of operation metadata from Swagger specs.
 package swagger
 
 import (
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 
+	"github.com/bytedance/sonic"
 	"github.com/swaggo/swag"
 )
 
@@ -72,7 +75,7 @@ func GetSwaggerSpec() (*SwaggerSpec, error) {
 	}
 
 	var spec SwaggerSpec
-	if err := json.Unmarshal([]byte(swaggerJSON), &spec); err != nil {
+	if err := sonic.Unmarshal([]byte(swaggerJSON), &spec); err != nil {
 		return nil, fmt.Errorf("failed to parse swagger JSON: %w", err)
 	}
 

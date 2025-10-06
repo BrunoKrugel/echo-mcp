@@ -1,3 +1,30 @@
+// Package server provides zero-configuration conversion of Echo web APIs to Model Context Protocol (MCP) tools.
+//
+// This package automatically exposes your Echo routes as MCP tools that can be called by
+// AI assistants and other MCP clients. It supports multiple schema generation methods
+// including Swagger/OpenAPI documentation, manual schema registration, and automatic
+// type inference.
+//
+// Basic usage:
+//
+//	e := echo.New()
+//	e.GET("/users/:id", getUserHandler)
+//	e.POST("/users", createUserHandler)
+//
+//	// Convert to MCP server
+//	mcp := server.New(e, &server.Config{
+//		BaseURL: "http://localhost:8080",
+//	})
+//
+//	// Mount MCP endpoint
+//	mcp.Mount("/mcp")
+//
+// For advanced usage with Swagger schemas:
+//
+//	mcp := server.New(e, &server.Config{
+//		BaseURL:              "http://localhost:8080",
+//		EnableSwaggerSchemas: true,
+//	})
 package server
 
 import (
@@ -13,6 +40,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/labstack/echo/v4"
 
 	"github.com/BrunoKrugel/echo-mcp/pkg/convert"
@@ -21,6 +49,9 @@ import (
 	"github.com/BrunoKrugel/echo-mcp/pkg/types"
 )
 
+// EchoMCP represents an MCP server that exposes Echo routes as MCP tools.
+// It handles the conversion of HTTP endpoints to MCP tool definitions and
+// manages the execution of tool calls by forwarding them to the original Echo handlers.
 type EchoMCP struct {
 	transport         transport.Transport
 	echo              *echo.Echo
@@ -38,21 +69,73 @@ type EchoMCP struct {
 	schemasMu         sync.RWMutex
 }
 
+// Config holds configuration options for the EchoMCP server.
 type Config struct {
-	Name                       string
-	Version                    string
-	Description                string
-	BaseURL                    string
-	IncludeOperations          []string
-	ExcludeOperations          []string
-	IncludeTags                []string
-	ExcludeTags                []string
-	EnableSwaggerSchemas       bool
-	DescribeAllResponses       bool
+	// Name is the MCP server name. If empty and EnableSwaggerSchemas is true,
+	// it will be automatically extracted from Swagger @title annotation.
+	Name string
+
+	// Version is the MCP server version. If empty and EnableSwaggerSchemas is true,
+	// it will be automatically extracted from Swagger @version annotation.
+	Version string
+
+	// Description is the MCP server description. If empty and EnableSwaggerSchemas is true,
+	// it will be automatically extracted from Swagger @description annotation.
+	Description string
+
+	// BaseURL is the base URL for HTTP requests made by MCP tools.
+	// Required for tool execution. Example: "http://localhost:8080"
+	BaseURL string
+
+	// IncludeOperations lists specific endpoints to expose as MCP tools.
+	// If specified, only these endpoints will be available as tools.
+	// Supports exact paths like "/users/:id" and wildcard patterns like "/admin/*".
+	// Takes precedence over ExcludeOperations.
+	IncludeOperations []string
+
+	// ExcludeOperations lists endpoints to exclude from MCP tools.
+	// Supports exact paths like "/users/:id" and wildcard patterns like "/admin/*".
+	// Ignored if IncludeOperations is specified.
+	ExcludeOperations []string
+
+	// IncludeTags lists Swagger tags to include when filtering endpoints.
+	// Only endpoints with these tags will be exposed as MCP tools.
+	// Takes precedence over ExcludeTags.
+	IncludeTags []string
+
+	// ExcludeTags lists Swagger tags to exclude when filtering endpoints.
+	// Endpoints with these tags will not be exposed as MCP tools.
+	// Ignored if IncludeTags is specified.
+	ExcludeTags []string
+
+	// EnableSwaggerSchemas enables automatic schema generation from Swagger/OpenAPI documentation.
+	// When true, the server will use Swagger annotations to generate type-safe MCP schemas.
+	// Also auto-populates Name, Description, and Version from Swagger info if not provided.
+	EnableSwaggerSchemas bool
+
+	// DescribeAllResponses determines whether to include all response schemas in tool descriptions.
+	// When true, MCP tool descriptions will include information about all possible response types.
+	DescribeAllResponses bool
+
+	// DescribeFullResponseSchema determines whether to include complete response schemas.
+	// When true, full response object structures are included in tool descriptions.
 	DescribeFullResponseSchema bool
 }
 
-// New creates a new EchoMCP instance
+// NewWithConfig creates a new EchoMCP instance with the provided configuration.
+// The config parameter can be nil, in which case default values are used.
+//
+// If EnableSwaggerSchemas is true and Name, Description, or Version are empty,
+// they will be automatically populated from Swagger annotations if available.
+//
+// Example:
+//
+//	config := &server.Config{
+//		BaseURL:              "http://localhost:8080",
+//		EnableSwaggerSchemas: true,
+//		ExcludeOperations:    []string{"/health", "/metrics"},
+//	}
+//	mcp := server.NewWithConfig(e, config)
 func NewWithConfig(e *echo.Echo, config *Config) *EchoMCP {
 	if config == nil {
 		config = &Config{}
@@ -95,7 +178,18 @@ func NewWithConfig(e *echo.Echo, config *Config) *EchoMCP {
 	return echoMCP
 }
 
-// New creates a new EchoMCP instance
+// New creates a new EchoMCP instance with default configuration.
+// EnableSwaggerSchemas is enabled by default. Name, Description, and Version
+// are automatically populated from Swagger annotations if available.
+//
+// This is equivalent to calling NewWithConfig with EnableSwaggerSchemas: true.
+//
+// Example:
+//
+//	e := echo.New()
+//	e.GET("/users/:id", getUserHandler)
+//	mcp := server.New(e)
+//	mcp.Mount("/mcp")
 func New(e *echo.Echo) *EchoMCP {
 	config := &Config{
 		EnableSwaggerSchemas: true,
@@ -138,7 +232,29 @@ func New(e *echo.Echo) *EchoMCP {
 	return echoMCP
 }
 
-// RegisterSchema registers Go types for query parameters and request body for a specific route
+// RegisterSchema registers Go types for query parameters and request body for a specific route.
+// This provides type-safe schema generation for routes that aren't covered by Swagger annotations.
+//
+// Parameters:
+//   - method: HTTP method (e.g., "GET", "POST")
+//   - path: Route path as defined in Echo (e.g., "/users/:id")
+//   - querySchema: Go struct representing query parameters (can be nil)
+//   - bodySchema: Go struct representing request body (can be nil)
+//
+// Example:
+//
+//	type UserQuery struct {
+//		Page  int  `form:"page" jsonschema:"minimum=1"`
+//		Limit int  `form:"limit" jsonschema:"maximum=100"`
+//	}
+//
+//	type CreateUserRequest struct {
+//		Name  string `json:"name" jsonschema:"required"`
+//		Email string `json:"email" jsonschema:"required"`
+//	}
+//
+//	mcp.RegisterSchema("GET", "/users", UserQuery{}, nil)
+//	mcp.RegisterSchema("POST", "/users", nil, CreateUserRequest{})
 func (e *EchoMCP) RegisterSchema(method, path string, querySchema, bodySchema any) {
 	e.schemasMu.Lock()
 	defer e.schemasMu.Unlock()
@@ -153,6 +269,19 @@ func (e *EchoMCP) RegisterSchema(method, path string, querySchema, bodySchema an
 // RegisterEndpoints sets the specific endpoints to include in MCP tools.
 // Only endpoints matching these paths will be registered as MCP tools.
 // If set, this takes precedence over ExcludeEndpoints.
+//
+// Supports exact paths and wildcard patterns:
+//   - "/users/:id" - exact path match
+//   - "/admin/*" - prefix match (all paths starting with /admin/)
+//
+// Example:
+//
+//	// Only expose user and order endpoints
+//	mcp.RegisterEndpoints([]string{
+//		"/api/v1/users/:id",
+//		"/api/v1/users",
+//		"/api/v1/orders/*",
+//	})
 func (e *EchoMCP) RegisterEndpoints(endpoints []string) {
 	e.includeEndpoints = endpoints
 }
@@ -160,11 +289,38 @@ func (e *EchoMCP) RegisterEndpoints(endpoints []string) {
 // ExcludeEndpoints sets endpoints to exclude from MCP tools.
 // Endpoints matching these paths will not be registered as MCP tools.
 // This is ignored if RegisterEndpoints is set.
+//
+// Supports exact paths and wildcard patterns:
+//   - "/health" - exact path match
+//   - "/admin/*" - prefix match (all paths starting with /admin/)
+//
+// Example:
+//
+//	// Exclude internal and debug endpoints
+//	mcp.ExcludeEndpoints([]string{
+//		"/health",
+//		"/metrics",
+//		"/debug/*",
+//		"/swagger/*",
+//	})
 func (e *EchoMCP) ExcludeEndpoints(endpoints []string) {
 	e.excludeEndpoints = endpoints
 }
 
-// Mount mounts the MCP server at the specified path
+// Mount mounts the MCP server at the specified path and registers it with the Echo instance.
+// This creates the HTTP endpoint that MCP clients will connect to.
+//
+// The mounted endpoint accepts POST requests with MCP protocol messages and returns
+// appropriate responses for initialize, tools/list, and tools/call requests.
+//
+// Example:
+//
+//	if err := mcp.Mount("/mcp"); err != nil {
+//		log.Fatal("Failed to mount MCP server:", err)
+//	}
+//
+// After mounting, the MCP server will be available at the specified path.
+// MCP clients can connect to this endpoint to discover and execute tools.
 func (e *EchoMCP) Mount(path string) error {
 	// Create HTTP transport first
 	e.transport = transport.NewHTTPTransport(path)
@@ -434,7 +590,7 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 
 	// Try to parse as JSON, fall back to string
 	var result any
-	if err := json.Unmarshal(responseBody, &result); err != nil {
+	if jsonErr := sonic.Unmarshal(responseBody, &result); jsonErr != nil {
 		result = string(responseBody)
 	}
 

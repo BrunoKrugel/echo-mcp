@@ -1,3 +1,6 @@
+// Package types defines the core data structures used throughout the echo-mcp library.
+// This includes MCP protocol types, tool definitions, schema representations,
+// and utility functions for JSON schema generation from Go types.
 package types
 
 import (

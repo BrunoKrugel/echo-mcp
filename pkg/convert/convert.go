@@ -1,3 +1,6 @@
+// Package convert handles the conversion of Echo routes to MCP tool definitions.
+// It processes HTTP routes, extracts metadata, generates input schemas, and creates
+// the mapping between MCP tools and their corresponding HTTP operations.
 package convert
 
 import (
@@ -217,7 +220,7 @@ func getSwaggerDescription(route *echo.Route, swaggerSpec *swagger.SwaggerSpec) 
 
 	if pathSpec, exists := swaggerSpec.Paths[swaggerPath]; exists {
 		method := strings.ToLower(route.Method)
-		if operation, exists := pathSpec[method]; exists {
+		if operation, operationExists := pathSpec[method]; operationExists {
 			if operation.Summary != "" {
 				return operation.Summary
 			}
@@ -242,7 +245,7 @@ func extractHeaderParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSpec
 
 	if pathSpec, exists := swaggerSpec.Paths[swaggerPath]; exists {
 		method := strings.ToLower(route.Method)
-		if operation, exists := pathSpec[method]; exists {
+		if operation, operationExists := pathSpec[method]; operationExists {
 			for _, param := range operation.Parameters {
 				if param.In == "header" {
 					headerParams = append(headerParams, param.Name)
@@ -266,7 +269,7 @@ func extractQueryParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSpec)
 
 	if pathSpec, exists := swaggerSpec.Paths[swaggerPath]; exists {
 		method := strings.ToLower(route.Method)
-		if operation, exists := pathSpec[method]; exists {
+		if operation, operationExists := pathSpec[method]; operationExists {
 			for _, param := range operation.Parameters {
 				if param.In == "query" {
 					queryParams = append(queryParams, param.Name)
@@ -292,7 +295,7 @@ func extractFormDataParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSp
 	// Try to find the path in swagger spec
 	if pathSpec, exists := swaggerSpec.Paths[swaggerPath]; exists {
 		method := strings.ToLower(route.Method)
-		if operation, exists := pathSpec[method]; exists {
+		if operation, operationExists := pathSpec[method]; operationExists {
 			for _, param := range operation.Parameters {
 				if param.In == "formData" {
 					formDataParams = append(formDataParams, param.Name)
