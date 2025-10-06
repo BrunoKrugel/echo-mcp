@@ -354,25 +354,45 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 	// Build the request URL
 	requestURL := e.buildRequestURL(operation, parameters)
 
-	// Create HTTP request
+	// Create HTTP request with appropriate body format
 	var body io.Reader
-	if isBodyMethod(operation.Method) {
-		// Extract body parameters (exclude path, header, and query parameters)
-		bodyData := make(map[string]any)
-		for key, value := range parameters {
-			if !isPathParameter(operation.Path, key) &&
-				!isHeaderParameter(operation, key) &&
-				!isQueryParameter(operation, key) {
-				bodyData[key] = value
-			}
-		}
+	var contentType string
 
-		if len(bodyData) > 0 {
-			jsonBody, err := json.Marshal(bodyData)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	if isBodyMethod(operation.Method) {
+		// Check if this operation uses form data
+		if len(operation.FormDataParams) > 0 {
+			// Handle form data
+			formData := url.Values{}
+			for key, value := range parameters {
+				if isFormDataParameter(operation, key) {
+					formData.Add(key, fmt.Sprintf("%v", value))
+				}
 			}
-			body = bytes.NewReader(jsonBody)
+
+			if len(formData) > 0 {
+				body = strings.NewReader(formData.Encode())
+				contentType = "application/x-www-form-urlencoded"
+			}
+		} else {
+			// Handle JSON body (exclude path, header, query, and form data parameters)
+			bodyData := make(map[string]any)
+			for key, value := range parameters {
+				if !isPathParameter(operation.Path, key) &&
+					!isHeaderParameter(operation, key) &&
+					!isQueryParameter(operation, key) &&
+					!isFormDataParameter(operation, key) {
+					bodyData[key] = value
+				}
+			}
+
+			if len(bodyData) > 0 {
+				jsonBody, err := json.Marshal(bodyData)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal request body: %w", err)
+				}
+				body = bytes.NewReader(jsonBody)
+				contentType = "application/json"
+			}
 		}
 	}
 
@@ -381,8 +401,9 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+	// Set appropriate Content-Type
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
 	}
 
 	// Add header parameters
@@ -468,6 +489,10 @@ func isHeaderParameter(operation types.Operation, paramName string) bool {
 
 func isQueryParameter(operation types.Operation, paramName string) bool {
 	return slices.Contains(operation.QueryParams, paramName)
+}
+
+func isFormDataParameter(operation types.Operation, paramName string) bool {
+	return slices.Contains(operation.FormDataParams, paramName)
 }
 
 // GetServerInfo returns the server information (useful for testing)

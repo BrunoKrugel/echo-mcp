@@ -33,12 +33,13 @@ type Tool struct {
 
 // Operation represents internal operation details for a tool
 type Operation struct {
-	Parameters   map[string]any
-	Method       string
-	Path         string
-	Description  string
-	HeaderParams []string
-	QueryParams  []string
+	Parameters     map[string]any
+	Method         string
+	Path           string
+	Description    string
+	HeaderParams   []string
+	QueryParams    []string
+	FormDataParams []string
 }
 
 // RegisteredSchemaInfo holds information about manually registered schemas

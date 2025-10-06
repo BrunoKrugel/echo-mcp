@@ -35,19 +35,22 @@ func ConvertRoutesToTools(routes []*echo.Route, registeredSchemas map[string]typ
 		tool := generateTool(route, operationID, registeredSchemas, swaggerSpec)
 		tools = append(tools, tool)
 
-		// Extract header and query parameters from swagger if available
+		// Extract header, query, and form data parameters from swagger if available
 		var headerParams []string
 		var queryParams []string
+		var formDataParams []string
 		if swaggerSpec != nil {
 			headerParams = extractHeaderParameters(route, swaggerSpec)
 			queryParams = extractQueryParameters(route, swaggerSpec)
+			formDataParams = extractFormDataParameters(route, swaggerSpec)
 		}
 
 		operations[operationID] = types.Operation{
-			Method:       route.Method,
-			Path:         route.Path,
-			HeaderParams: headerParams,
-			QueryParams:  queryParams,
+			Method:         route.Method,
+			Path:           route.Path,
+			HeaderParams:   headerParams,
+			QueryParams:    queryParams,
+			FormDataParams: formDataParams,
 		}
 	}
 
@@ -273,4 +276,30 @@ func extractQueryParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSpec)
 	}
 
 	return queryParams
+}
+
+// extractFormDataParameters extracts form data parameter names from swagger specification
+func extractFormDataParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSpec) []string {
+	var formDataParams []string
+
+	if swaggerSpec == nil {
+		return formDataParams
+	}
+
+	// Convert Echo path to Swagger path format
+	swaggerPath := echoPathToSwaggerPath(route.Path)
+
+	// Try to find the path in swagger spec
+	if pathSpec, exists := swaggerSpec.Paths[swaggerPath]; exists {
+		method := strings.ToLower(route.Method)
+		if operation, exists := pathSpec[method]; exists {
+			for _, param := range operation.Parameters {
+				if param.In == "formData" {
+					formDataParams = append(formDataParams, param.Name)
+				}
+			}
+		}
+	}
+
+	return formDataParams
 }

@@ -3,7 +3,6 @@ package swagger
 import (
 	"encoding/json"
 	"fmt"
-	"maps"
 	"regexp"
 	"strings"
 
@@ -11,9 +10,10 @@ import (
 )
 
 type SwaggerSpec struct {
-	Paths   map[string]SwaggerPath `json:"paths"`
-	Info    *SwaggerInfo           `json:"info"`
-	Swagger string                 `json:"swagger"`
+	Paths       map[string]SwaggerPath    `json:"paths"`
+	Definitions map[string]*SwaggerSchema `json:"definitions"`
+	Info        *SwaggerInfo              `json:"info"`
+	Swagger     string                    `json:"swagger"`
 }
 
 type SwaggerInfo struct {
@@ -47,6 +47,7 @@ type SwaggerResponse struct {
 }
 
 type SwaggerSchema struct {
+	Ref                  string                    `json:"$ref,omitempty"`
 	Properties           map[string]*SwaggerSchema `json:"properties,omitempty"`
 	AdditionalProperties *SwaggerSchema            `json:"additionalProperties,omitempty"`
 	Minimum              *float64                  `json:"minimum,omitempty"`
@@ -113,7 +114,7 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 
 	// Process parameters
 	for _, param := range operation.Parameters {
-		if param.In == "path" || param.In == "query" || param.In == "header" {
+		if param.In == "path" || param.In == "query" || param.In == "header" || param.In == "formData" {
 			propSchema := map[string]any{
 				"type": param.Type,
 			}
@@ -122,6 +123,8 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 				propSchema["description"] = param.Description
 			} else if param.In == "header" {
 				propSchema["description"] = fmt.Sprintf("Header parameter: %s", param.Name)
+			} else if param.In == "formData" {
+				propSchema["description"] = fmt.Sprintf("Form data parameter: %s", param.Name)
 			}
 
 			properties[param.Name] = propSchema
@@ -130,15 +133,17 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 				required = append(required, param.Name)
 			}
 		} else if param.In == "body" && param.Schema != nil {
-			// Handle request body
-			bodyProps := convertSwaggerSchemaToMCP(param.Schema)
-			if bodySchema, ok := bodyProps.(map[string]any); ok {
-				if props, ok := bodySchema["properties"].(map[string]any); ok {
-					maps.Copy(properties, props)
-				}
-				if reqFields, ok := bodySchema["required"].([]string); ok {
-					required = append(required, reqFields...)
-				}
+			// Skip body parameters for GET requests (they're likely response schemas mistakenly marked as body)
+			if strings.ToUpper(method) == "GET" {
+				continue
+			}
+
+			// Handle request body as a nested object under "body" property
+			bodySchema := spec.convertSwaggerSchemaToMCP(param.Schema)
+			properties["body"] = bodySchema
+
+			if param.Required {
+				required = append(required, "body")
 			}
 		}
 	}
@@ -151,8 +156,23 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 }
 
 // convertSwaggerSchemaToMCP converts swagger schema to MCP-compatible schema
-func convertSwaggerSchemaToMCP(schema *SwaggerSchema) any {
+func (spec *SwaggerSpec) convertSwaggerSchemaToMCP(schema *SwaggerSchema) any {
 	if schema == nil {
+		return map[string]any{"type": "object"}
+	}
+
+	// Handle $ref resolution
+	if schema.Ref != "" {
+		// Extract definition name from $ref (e.g., "#/definitions/main.User" -> "main.User")
+		refParts := strings.Split(schema.Ref, "/")
+		if len(refParts) >= 3 && refParts[0] == "#" && refParts[1] == "definitions" {
+			defName := refParts[2]
+			if refSchema, exists := spec.Definitions[defName]; exists {
+				// Recursively convert the referenced schema
+				return spec.convertSwaggerSchemaToMCP(refSchema)
+			}
+		}
+		// If $ref cannot be resolved, return a basic object
 		return map[string]any{"type": "object"}
 	}
 
@@ -181,13 +201,13 @@ func convertSwaggerSchemaToMCP(schema *SwaggerSchema) any {
 	if schema.Properties != nil {
 		properties := map[string]any{}
 		for key, prop := range schema.Properties {
-			properties[key] = convertSwaggerSchemaToMCP(prop)
+			properties[key] = spec.convertSwaggerSchemaToMCP(prop)
 		}
 		result["properties"] = properties
 	}
 
 	if schema.AdditionalProperties != nil {
-		result["additionalProperties"] = convertSwaggerSchemaToMCP(schema.AdditionalProperties)
+		result["additionalProperties"] = spec.convertSwaggerSchemaToMCP(schema.AdditionalProperties)
 	}
 
 	if len(schema.Required) > 0 {
