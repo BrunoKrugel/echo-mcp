@@ -1,5 +1,4 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
-
 version: 2
 
 before:
@@ -14,7 +13,7 @@ builds:
 
 # Skip archives since this is a library, not a binary distribution
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     files:
       - none*
 
@@ -64,7 +63,7 @@ release:
     import "github.com/BrunoKrugel/echo-mcp"
     ```
 
-    For detailed usage examples, see the [examples](https://github.com/BrunoKrugel/echo-mcp/tree/main/examples) directory.
+    For detailed usage examples, see the [examples](https://github.com/BrunoKrugel/echo-mcp/blob/main/examples/simple/main.go) directory.
 
     ---
 
