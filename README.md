@@ -1,6 +1,8 @@
-# Echo-MCP: Zero-Config Echo API to MCP Bridge
+# Zero-Config Echo API to MCP
 
 Adapt any existing Echo API into MCP tools in seconds, enabling AI assistants to interact with your API through [Model Context Protocol](https://modelcontextprotocol.io/introduction).
+
+Inspired by [gin-mcp](https://github.com/ckanthony/gin-mcp) but for the [Echo framework](https://echo.labstack.com/).
 
 ## Key Features
 
@@ -8,21 +10,6 @@ Adapt any existing Echo API into MCP tools in seconds, enabling AI assistants to
 - **Swagger Integration**: Automatic schema generation from Swagger/OpenAPI annotations
 - **Smart Filtering**: Include/exclude endpoints with wildcard patterns
 - **MCP Compatible**: Works with Cursor, Claude Desktop, VS Code and more.
-
-## Why echo-mcp?
-
-**Problem**: You have an API built with Echo framework, but AI assistants can't interact with it directly.
-
-**Solution**: Echo-MCP automatically creates MCP tools from your existing routes, no API changes required.
-
-```go
-// Just an Echo API
-e.GET("/ping", pingPongHandler)
-
-// Now AI assistants can call the API through MCP
-mcp := server.New(e, &server.Config{BaseURL: "http://localhost:8080"})
-mcp.Mount("/mcp")
-```
 
 ## Installation
 
@@ -147,9 +134,9 @@ Echo-MCP supports three schema generation approaches, with automatic fallback:
 
 | Method | Use Case | Priority |
 |--------|----------|----------|
-| **Swagger** | Production APIs with OpenAPI docs | 🥇 First |
-| **Manual** | Fine-grained control, complex validation | 🥈 Second |
-| **Automatic** | Quick prototyping, simple endpoints | 🥉 Fallback |
+| **Swagger** | Production APIs with OpenAPI docs | First |
+| **Manual** | Fine-grained control, complex validation | Second |
+| **Automatic** | Quick prototyping, simple endpoints | Fallback |
 
 ```go
 mcp := server.New(e, &server.Config{
@@ -197,6 +184,7 @@ Once your server is running:
 
 ## Acknowledgments
 
-- [Echo Framework](https://echo.labstack.com/) - High performance Go web framework
 - [Model Context Protocol](https://modelcontextprotocol.io/) - Universal protocol for AI-tool interaction
+- [Echo Framework](https://echo.labstack.com/) - High performance Go web framework
 - [Swaggo](https://github.com/swaggo/swag) - Swagger documentation generator
+- [Echo Swagger](https://github.com/swaggo/echo-swagger) - Swagger UI middleware for Echo
