@@ -1,7 +1,7 @@
 # Zero-Config Echo API to MCP
 
-[![Build Status](https://github.com/BrunoKrugel/echo-mcp/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/features/actions)
-[![Codecov branch](https://img.shields.io/codecov/c/github/BrunoKrugel/echo-mcp/master.svg)](https://codecov.io/gh/BrunoKrugel/echo-mcp)
+[![Build Status](https://github.com/BrunoKrugel/echo-mcp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/features/actions)
+[![Codecov branch](https://img.shields.io/codecov/c/github/BrunoKrugel/echo-mcp/main.svg)](https://codecov.io/gh/BrunoKrugel/echo-mcp)
 [![Go Report Card](https://goreportcard.com/badge/github.com/BrunoKrugel/echo-mcp)](https://goreportcard.com/report/github.com/BrunoKrugel/echo-mcp)
 [![Release](https://img.shields.io/github/release/BrunoKrugel/echo-mcp.svg?style=flat-square)](https://github.com/BrunoKrugel/echo-mcp/releases)
 

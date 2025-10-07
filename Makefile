@@ -38,6 +38,11 @@ run: ## Execute the application locally
 example: ## Run the example application
 	go run -race ./examples/simple/main.go
 
+.PHONY: test
+test: # Runs all the tests in the application and returns if they passed or failed, along with a coverage percentage
+	go install github.com/mfridman/tparse@main | go mod tidy
+	PROFILE=local go test -parallel 10 -json -cover ./... | tparse -all -pass -trimpath=github.com/BrunoKrugel/echo-mcp/
+
 ########################################################################################################################
 ##@ Code Style
 ########################################################################################################################
