@@ -11,7 +11,7 @@ import (
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
-type PingPong struct {
+type PingPongResponse struct {
 	Message string `json:"message"`
 }
 
@@ -19,8 +19,18 @@ type AppError struct {
 	Error string `json:"error"`
 }
 
-type User struct {
+type UserRequest struct {
 	ID string `json:"id" validate:"required"`
+}
+
+type UserPatchRequest struct {
+	ID     string `json:"-" param:"id" validate:"required"`
+	Status string `json:"status" validate:"required,oneof=active inactive"`
+}
+
+type UserResponse struct {
+	ID     string `json:"user_id"`
+	Status string `json:"status,omitempty"`
 }
 
 // @title			Echo-MCP Swagger Example API
@@ -47,6 +57,8 @@ func main() {
 
 	e.GET("/pong", PongHandler)
 
+	e.PATCH("/users/:id", UserIDHandler)
+
 	e.GET("/users/:id", UserIDHandler)
 
 	e.POST("/users", UsersHandler)
@@ -72,6 +84,8 @@ func main() {
 		"/swagger/*",
 	})
 
+	mcp.RegisterSchema("PATCH", "/users/:id", nil, UserPatchRequest{})
+
 	// Mount the MCP server endpoint
 	if err := mcp.Mount("/mcp"); err != nil {
 		e.Logger.Fatal("Failed to mount MCP server:", err)
@@ -87,10 +101,10 @@ func main() {
 //	@Tags		Ping Pong
 //	@Security	ApiKey
 //	@produces	json
-//	@Success	200	{object}	main.PingPong
+//	@Success	200	{object}	main.PingPongResponse
 //	@Router		/ping [GET]
 func PongHandler(c echo.Context) error {
-	return c.JSON(http.StatusOK, PingPong{"pong"})
+	return c.JSON(http.StatusOK, PingPongResponse{"pong"})
 }
 
 // UserIDHandler
@@ -99,14 +113,16 @@ func PongHandler(c echo.Context) error {
 //	@Tags		Users
 //	@Security	ApiKey
 //	@produces	json
-//	@Param		Request	body		main.PingPong	true	"Request body"
-//	@Success	200		{object}	main.PingPong
+//	@Param		Request	body		main.UserRequest	true	"Request body"
+//	@Param		id		path		string				true	"User ID"	format(uuid)
+//	@Success	200		{object}	main.UserResponse
+//	@Failure	400		{object}	main.AppError
 //	@Router		/users/{id} [GET]
 func UserIDHandler(c echo.Context) error {
 	userID := c.Param("id")
-	return c.JSON(http.StatusOK, map[string]string{
-		"user_id": userID,
-		"status":  "fetched",
+	return c.JSON(http.StatusOK, UserResponse{
+		ID:     userID,
+		Status: "fetched",
 	})
 }
 
@@ -116,15 +132,41 @@ func UserIDHandler(c echo.Context) error {
 //	@Tags		Users
 //	@Security	ApiKey
 //	@produces	json
-//	@Param		Request	body		main.User	true	"Request body"
-//	@Success	200		{object}	main.User
+//	@Param		Request	body		main.UserRequest	true	"Request body"
+//	@Success	200		{object}	main.UserResponse
 //	@Failure	400		{object}	main.AppError
 //	@Router		/users [POST]
 func UsersHandler(c echo.Context) error {
-	var user User
+	var user UserRequest
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(http.StatusBadRequest, &AppError{Error: "invalid request"})
 	}
+
 	user.ID = "123"
-	return c.JSON(http.StatusCreated, user)
+	return c.JSON(http.StatusCreated, &UserResponse{
+		ID: user.ID,
+	})
+}
+
+// UsersPatchHandler
+//
+//	@Summary	Updates a user
+//	@Tags		Users
+//	@Security	ApiKey
+//	@produces	json
+//	@Param		Request	body		main.UserPatchRequest	true	"Request body"
+//	@Param		id		path		string					true	"User ID"	format(uuid)
+//	@Success	200		{object}	main.UserResponse
+//	@Failure	400		{object}	main.AppError
+//	@Router		/users/{id} [PATCH]
+func UsersPatchHandler(c echo.Context) error {
+	var user UserPatchRequest
+	if err := c.Bind(&user); err != nil {
+		return c.JSON(http.StatusBadRequest, &AppError{Error: "invalid request"})
+	}
+
+	return c.JSON(http.StatusCreated, &UserResponse{
+		ID:     user.ID,
+		Status: user.Status,
+	})
 }
