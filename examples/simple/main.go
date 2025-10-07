@@ -57,11 +57,11 @@ func main() {
 
 	e.GET("/pong", PongHandler)
 
-	e.PATCH("/users/:id", UserIDHandler)
+	e.PATCH("/users/:id", UsersPatchHandler)
 
 	e.GET("/users/:id", UserIDHandler)
 
-	e.POST("/users", UsersHandler)
+	e.POST("/users", CreateUsersHandler)
 
 	e.GET("/swagger/*", echoSwagger.EchoWrapHandler())
 
@@ -126,7 +126,7 @@ func UserIDHandler(c echo.Context) error {
 	})
 }
 
-// UsersHandler
+// CreateUsersHandler
 //
 //	@Summary	Creates a new user
 //	@Tags		Users
@@ -136,7 +136,7 @@ func UserIDHandler(c echo.Context) error {
 //	@Success	200		{object}	main.UserResponse
 //	@Failure	400		{object}	main.AppError
 //	@Router		/users [POST]
-func UsersHandler(c echo.Context) error {
+func CreateUsersHandler(c echo.Context) error {
 	var user UserRequest
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(http.StatusBadRequest, &AppError{Error: "invalid request"})

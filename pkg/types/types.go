@@ -20,21 +20,18 @@ type MCPMessage struct {
 	ID      json.RawMessage `json:"id,omitempty"`
 }
 
-// MCPError represents an MCP error
 type MCPError struct {
 	Data    any    `json:"data,omitempty"`
 	Message string `json:"message"`
 	Code    int    `json:"code"`
 }
 
-// Tool represents an MCP tool definition
 type Tool struct {
 	InputSchema any    `json:"inputSchema"`
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 }
 
-// Operation represents internal operation details for a tool
 type Operation struct {
 	Parameters     map[string]any
 	Method         string
@@ -45,18 +42,9 @@ type Operation struct {
 	FormDataParams []string
 }
 
-// RegisteredSchemaInfo holds information about manually registered schemas
 type RegisteredSchemaInfo struct {
 	QuerySchema any
 	BodySchema  any
-}
-
-// Schema represents a JSON schema
-type Schema struct {
-	AdditionalProperties any            `json:"additionalProperties,omitempty"`
-	Properties           map[string]any `json:"properties,omitempty"`
-	Type                 string         `json:"type,omitempty"`
-	Required             []string       `json:"required,omitempty"`
 }
 
 // GetSchema generates a JSON schema from a Go type using reflection and struct tags
