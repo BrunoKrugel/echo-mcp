@@ -5,16 +5,16 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/BrunoKrugel/echo-mcp)](https://goreportcard.com/report/github.com/BrunoKrugel/echo-mcp)
 [![Release](https://img.shields.io/github/release/BrunoKrugel/echo-mcp.svg?style=flat-square)](https://github.com/BrunoKrugel/echo-mcp/releases)
 
-Adapt any existing Echo API into MCP tools in seconds, enabling AI assistants to interact with your API through [Model Context Protocol](https://modelcontextprotocol.io/introduction).
+Adapt any existing Echo API into MCP tools, enabling AI agents to interact with your API through [Model Context Protocol](https://modelcontextprotocol.io/introduction).
 
 Inspired by [gin-mcp](https://github.com/ckanthony/gin-mcp) but for the [Echo framework](https://echo.labstack.com/).
 
 ## Key Features
 
-- **Zero Configuration**: Works out-of-the-box with any existing Echo API
+- **Zero Configuration**: Works with any existing Echo API
 - **Swagger Integration**: Automatic schema generation from Swagger/OpenAPI annotations
-- **Smart Filtering**: Include/exclude endpoints with wildcard patterns
-- **MCP Compatible**: Works with Cursor, Claude Desktop, VS Code and more.
+- **Filtering**: Include/exclude endpoints with wildcard patterns
+- **MCP Compatible**: Works with any agent that supports MCP.
 
 ## Installation
 
@@ -36,13 +36,13 @@ import (
 func main() {
     e := echo.New()
 
-    // Your existing API routes
+    // Existing API routes
     e.GET("/ping", func(c echo.Context) error {
         return c.JSON(http.StatusOK, map[string]string{"message": "pong"})
     })
 
 
-    // Add MCP support (this is all you need!)
+    // Add MCP support
     mcp := server.New(e)
     mcp.Mount("/mcp")
 
@@ -56,7 +56,7 @@ Now the API is accessible at `http://localhost:8080/mcp`
 
 ### Automatic Swagger Schemas
 
-Let swagger annotations drive your MCP schemas for type-safe, well-documented API tools:
+If you already use Swaggo for Swagger documentation, enable automatic schema generation:
 
 ```go
 // @Summary Get user by ID
@@ -86,7 +86,7 @@ func main() {
 
 ### Endpoint Filtering
 
-Control which endpoints become MCP tools:
+Expose only the necessary endpoints to MCP tools:
 
 ```go
 mcp := server.New(e)
@@ -103,9 +103,9 @@ mcp.ExcludeEndpoints([]string{
 })
 ```
 
-### 🔧 Manual Schema Registration
+### Manual Schema Registration
 
-For maximum control, register schemas manually:
+For better control, register schemas manually:
 
 ```go
 type CreateUserRequest struct {
@@ -183,7 +183,7 @@ Once your server is running:
 
 ## Acknowledgments
 
-- [Model Context Protocol](https://modelcontextprotocol.io/) - Universal protocol for AI-tool interaction
-- [Echo Framework](https://echo.labstack.com/) - High performance Go web framework
 - [Swaggo](https://github.com/swaggo/swag) - Swagger documentation generator
+- [Echo Framework](https://echo.labstack.com/) - High performance Go web framework
 - [Echo Swagger](https://github.com/swaggo/echo-swagger) - Swagger UI middleware for Echo
+- [Model Context Protocol](https://modelcontextprotocol.io/) - Universal protocol for AI-tool interaction

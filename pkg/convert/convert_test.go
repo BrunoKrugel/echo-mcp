@@ -118,7 +118,7 @@ func TestGenerateTool(t *testing.T) {
 		// Create mock swagger spec
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
-				"/users": swagger.SwaggerPath{
+				"/users": {
 					"get": swagger.SwaggerOperation{
 						Summary:     "Get all users",
 						Description: "Retrieves a list of all users",
@@ -353,7 +353,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
-				"/users": swagger.SwaggerPath{
+				"/users": {
 					"get": swagger.SwaggerOperation{
 						Summary: "Get all users",
 					},
@@ -371,7 +371,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
-				"/users": swagger.SwaggerPath{
+				"/users": {
 					"get": swagger.SwaggerOperation{
 						Description: "Retrieve all users from database",
 					},
@@ -389,7 +389,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
-				"/users": swagger.SwaggerPath{
+				"/users": {
 					"get": swagger.SwaggerOperation{
 						Summary:     "Get all users",
 						Description: "Retrieve all users from database",
@@ -408,7 +408,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
-				"/users": swagger.SwaggerPath{
+				"/users": {
 					"get": swagger.SwaggerOperation{
 						Summary: "Get all users",
 					},
@@ -428,7 +428,7 @@ func TestExtractHeaderParameters(t *testing.T) {
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
-				"/users": swagger.SwaggerPath{
+				"/users": {
 					"get": swagger.SwaggerOperation{
 						Parameters: []swagger.SwaggerParameter{
 							{Name: "Authorization", In: "header"},
@@ -463,7 +463,7 @@ func TestExtractQueryParameters(t *testing.T) {
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
-				"/users": swagger.SwaggerPath{
+				"/users": {
 					"get": swagger.SwaggerOperation{
 						Parameters: []swagger.SwaggerParameter{
 							{Name: "page", In: "query"},
@@ -498,7 +498,7 @@ func TestExtractFormDataParameters(t *testing.T) {
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
-				"/upload": swagger.SwaggerPath{
+				"/upload": {
 					"post": swagger.SwaggerOperation{
 						Parameters: []swagger.SwaggerParameter{
 							{Name: "file", In: "formData"},

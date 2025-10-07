@@ -20,7 +20,7 @@ func TestGetOperationSchemaBodyParameters(t *testing.T) {
 				},
 			},
 			Paths: map[string]SwaggerPath{
-				"/users": SwaggerPath{
+				"/users": {
 					"post": SwaggerOperation{
 						Parameters: []SwaggerParameter{
 							{
@@ -70,7 +70,7 @@ func TestGetOperationSchemaSkipsBodyForGET(t *testing.T) {
 				},
 			},
 			Paths: map[string]SwaggerPath{
-				"/ping": SwaggerPath{
+				"/ping": {
 					"get": SwaggerOperation{
 						Parameters: []SwaggerParameter{
 							{

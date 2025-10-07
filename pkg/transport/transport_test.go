@@ -55,7 +55,7 @@ func (m *MockTransport) GetToolsNotified() bool {
 func TestMessageHandler(t *testing.T) {
 	t.Run("Should define correct function signature", func(t *testing.T) {
 		// Test that MessageHandler can accept any params and return any result with error
-		var handler MessageHandler = func(params any) (any, error) {
+		var handler MessageHandler = func(_ any) (any, error) {
 			return "test result", nil
 		}
 
@@ -66,7 +66,7 @@ func TestMessageHandler(t *testing.T) {
 	})
 
 	t.Run("Should handle error returns", func(t *testing.T) {
-		var handler MessageHandler = func(params any) (any, error) {
+		var handler MessageHandler = func(_ any) (any, error) {
 			return nil, assert.AnError
 		}
 
