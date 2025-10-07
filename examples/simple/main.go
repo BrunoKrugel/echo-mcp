@@ -63,28 +63,19 @@ func main() {
 
 	e.POST("/users", CreateUsersHandler)
 
+	// Register Swagger
 	e.GET("/swagger/*", echoSwagger.EchoWrapHandler())
 
 	// Create and configure the MCP server
 	mcp := server.New(e)
 
-	// Example 1: Include only specific endpoints
-	// Uncomment one of these examples:
-
-	// Only expose user-related endpoints
-	// mcp.RegisterEndpoints([]string{"/users/:id", "/users"})
-
-	// Only expose ping and health endpoints
-	// mcp.RegisterEndpoints([]string{"/ping", "/health"})
-
-	// Example 2: Exclude specific endpoints (alternative to RegisterEndpoints)
-	// Exclude all admin endpoints
+	// Exclude endpoints
 	mcp.ExcludeEndpoints([]string{
 		"/pong",
 		"/swagger/*",
 	})
 
-	mcp.RegisterSchema("PATCH", "/users/:id", nil, UserPatchRequest{})
+	mcp.RegisterSchema("PATCH", "/users/:id", nil, &UserPatchRequest{})
 
 	// Mount the MCP server endpoint
 	if err := mcp.Mount("/mcp"); err != nil {
@@ -104,7 +95,7 @@ func main() {
 //	@Success	200	{object}	main.PingPongResponse
 //	@Router		/ping [GET]
 func PongHandler(c echo.Context) error {
-	return c.JSON(http.StatusOK, PingPongResponse{"pong"})
+	return c.JSON(http.StatusOK, &PingPongResponse{"pong"})
 }
 
 // UserIDHandler
@@ -120,7 +111,7 @@ func PongHandler(c echo.Context) error {
 //	@Router		/users/{id} [GET]
 func UserIDHandler(c echo.Context) error {
 	userID := c.Param("id")
-	return c.JSON(http.StatusOK, UserResponse{
+	return c.JSON(http.StatusOK, &UserResponse{
 		ID:     userID,
 		Status: "fetched",
 	})
