@@ -24,7 +24,10 @@ type UserRequest struct {
 }
 
 type UserPatchRequest struct {
-	ID     string `json:"-" param:"id" validate:"required"`
+	ID string `json:"-" param:"id" validate:"required"`
+	// User Full Name
+	Name string `json:"name" validate:"required"`
+	// User Status
 	Status string `json:"status" validate:"required,oneof=active inactive"`
 }
 

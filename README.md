@@ -103,7 +103,7 @@ mcp.ExcludeEndpoints([]string{
 })
 ```
 
-### Manual Schema Registration
+### Manual Schema Registration (WIP)
 
 For better control, register schemas manually:
 
@@ -179,6 +179,14 @@ Once your server is running:
     }
   ]
 }
+```
+
+## Local Testing
+
+For local testing, use MCP Inspector:
+
+```bash
+npx -y @anthropic-ai/mcp-inspector http://localhost:8080/mcp
 ```
 
 ## Acknowledgments
