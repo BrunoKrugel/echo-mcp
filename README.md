@@ -152,32 +152,17 @@ mcp.RegisterSchema("POST", "/users", nil, CreateUserRequest{})
 
 Once your server is running:
 
-### Cursor IDE
-1. Settings → MCP → Add Server
-2. Server URL: `http://localhost:8080/mcp`
-3. AI can now call your API!
+### Manual configuration
 
-### Claude Desktop
 ```json
 {
   "mcpServers": {
     "echo-api": {
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-client", "http://localhost:8080/mcp"]
-    }
+      "type": "http",
+      "url": "http://localhost:8080/mcp",
+      "timeout": 120
+    },
   }
-}
-```
-
-### Continue.dev
-```json
-{
-  "mcpServers": [
-    {
-      "name": "echo-api",
-      "url": "http://localhost:8080/mcp"
-    }
-  ]
 }
 ```
 
