@@ -60,13 +60,15 @@ func ConvertRoutesToTools(routes []*echo.Route, registeredSchemas map[string]typ
 	return tools, operations
 }
 
-// generateOperationID creates a unique operation ID for a route
+// generateOperationID creates a unique operation ID for a route, some agents only support tools names that only contain [a-z0-9_-]
 func generateOperationID(method, path string) string {
 	// Convert path parameters to a consistent format
 	// /users/:id -> /users/{id}
 	normalizedPath := strings.ReplaceAll(path, ":", "")
 	normalizedPath = strings.ReplaceAll(normalizedPath, "/", "_")
+	normalizedPath = strings.ReplaceAll(normalizedPath, ".", "")
 	normalizedPath = strings.Trim(normalizedPath, "_")
+	normalizedPath = strings.ToLower(normalizedPath)
 
 	if normalizedPath == "" {
 		normalizedPath = "root"

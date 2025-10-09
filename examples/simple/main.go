@@ -64,7 +64,7 @@ func main() {
 
 	e.GET("/users/:id", UserIDHandler)
 
-	e.POST("/users", CreateUsersHandler)
+	e.POST("/v1.0/Users", CreateUsersHandler)
 
 	// Register Swagger
 	e.GET("/swagger/*", echoSwagger.EchoWrapHandler())
@@ -129,7 +129,7 @@ func UserIDHandler(c echo.Context) error {
 //	@Param		Request	body		main.UserRequest	true	"Request body"
 //	@Success	200		{object}	main.UserResponse
 //	@Failure	400		{object}	main.AppError
-//	@Router		/users [POST]
+//	@Router		/v1.0/Users [POST]
 func CreateUsersHandler(c echo.Context) error {
 	var user UserRequest
 	if err := c.Bind(&user); err != nil {
