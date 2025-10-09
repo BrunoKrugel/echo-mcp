@@ -171,7 +171,7 @@ Once your server is running:
 For local testing, use MCP Inspector:
 
 ```bash
-npx -y @anthropic-ai/mcp-inspector http://localhost:8080/mcp
+npx @modelcontextprotocol/inspector http://localhost:8080/mcp
 ```
 
 ## Acknowledgments
