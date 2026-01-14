@@ -44,10 +44,9 @@ type UserResponse struct {
 // @host			localhost:8080
 // @BasePath		/api/v1
 func main() {
-
 	e := echo.New()
 
-	e.Use(middleware.Logger())
+	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
 		Skipper: func(c echo.Context) bool {
