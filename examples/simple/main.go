@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	server "github.com/BrunoKrugel/echo-mcp"
-	_ "github.com/BrunoKrugel/echo-mcp/docs" // Need to generate swagger manually
+	_ "github.com/BrunoKrugel/echo-mcp/examples/simple/docs" // Need to generate swagger manually with make swag
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	echoSwagger "github.com/swaggo/echo-swagger"

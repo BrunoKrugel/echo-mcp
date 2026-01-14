@@ -18,7 +18,7 @@ func TestConvertRoutesToTools(t *testing.T) {
 			{Path: "/users", Method: "POST"},
 		}
 
-		tools, operations := ConvertRoutesToTools(routes, nil, false)
+		tools, operations := ConvertRoutesToTools(routes, nil, nil)
 
 		assert.Len(t, tools, 3)
 		assert.Len(t, operations, 3)
@@ -38,7 +38,7 @@ func TestConvertRoutesToTools(t *testing.T) {
 	t.Run("Should handle empty routes", func(t *testing.T) {
 		routes := []*echo.Route{}
 
-		tools, operations := ConvertRoutesToTools(routes, nil, false)
+		tools, operations := ConvertRoutesToTools(routes, nil, nil)
 
 		assert.Empty(t, tools)
 		assert.Empty(t, operations)
@@ -60,7 +60,7 @@ func TestConvertRoutesToTools(t *testing.T) {
 			},
 		}
 
-		tools, operations := ConvertRoutesToTools(routes, registeredSchemas, false)
+		tools, operations := ConvertRoutesToTools(routes, registeredSchemas, nil)
 
 		assert.Len(t, tools, 1)
 		assert.Len(t, operations, 1)
@@ -87,7 +87,7 @@ func TestConvertRoutesToTools(t *testing.T) {
 
 		// This will attempt to use swagger but likely fail in test environment
 		// The important thing is that it doesn't crash
-		tools, operations := ConvertRoutesToTools(routes, nil, true)
+		tools, operations := ConvertRoutesToTools(routes, nil, nil)
 
 		assert.Len(t, tools, 1)
 		assert.Len(t, operations, 1)

@@ -55,15 +55,16 @@ import (
 // manages the execution of tool calls by forwarding them to the original Echo handlers.
 type EchoMCP struct {
 	transport         transport.Transport
+	swaggerSpec       *swagger.SwaggerSpec
 	echo              *echo.Echo
 	operations        map[string]types.Operation
 	config            *Config
 	registeredSchemas map[string]types.RegisteredSchemaInfo
 	executeToolFunc   func(operationID string, parameters map[string]any) (any, error)
 	name              string
-	version           string
 	description       string
 	baseURL           string
+	version           string
 	tools             []types.Tool
 	includeEndpoints  []string
 	excludeEndpoints  []string
@@ -72,54 +73,17 @@ type EchoMCP struct {
 
 // Config holds configuration options for the EchoMCP server.
 type Config struct {
-	// Name is the MCP server name. If empty and EnableSwaggerSchemas is true,
-	// it will be automatically extracted from Swagger @title annotation.
-	Name string
-
-	// Version is the MCP server version. If empty and EnableSwaggerSchemas is true,
-	// it will be automatically extracted from Swagger @version annotation.
-	Version string
-
-	// Description is the MCP server description. If empty and EnableSwaggerSchemas is true,
-	// it will be automatically extracted from Swagger @description annotation.
-	Description string
-
-	// BaseURL is the base URL for HTTP requests made by MCP tools.
-	// Required for tool execution. Example: "http://localhost:8080"
-	BaseURL string
-
-	// IncludeOperations lists specific endpoints to expose as MCP tools.
-	// If specified, only these endpoints will be available as tools.
-	// Supports exact paths like "/users/:id" and wildcard patterns like "/admin/*".
-	// Takes precedence over ExcludeOperations.
-	IncludeOperations []string
-
-	// ExcludeOperations lists endpoints to exclude from MCP tools.
-	// Supports exact paths like "/users/:id" and wildcard patterns like "/admin/*".
-	// Ignored if IncludeOperations is specified.
-	ExcludeOperations []string
-
-	// IncludeTags lists Swagger tags to include when filtering endpoints.
-	// Only endpoints with these tags will be exposed as MCP tools.
-	// Takes precedence over ExcludeTags.
-	IncludeTags []string
-
-	// ExcludeTags lists Swagger tags to exclude when filtering endpoints.
-	// Endpoints with these tags will not be exposed as MCP tools.
-	// Ignored if IncludeTags is specified.
-	ExcludeTags []string
-
-	// EnableSwaggerSchemas enables automatic schema generation from Swagger/OpenAPI documentation.
-	// When true, the server will use Swagger annotations to generate type-safe MCP schemas.
-	// Also auto-populates Name, Description, and Version from Swagger info if not provided.
-	EnableSwaggerSchemas bool
-
-	// DescribeAllResponses determines whether to include all response schemas in tool descriptions.
-	// When true, MCP tool descriptions will include information about all possible response types.
-	DescribeAllResponses bool
-
-	// DescribeFullResponseSchema determines whether to include complete response schemas.
-	// When true, full response object structures are included in tool descriptions.
+	Name                       string
+	Version                    string
+	Description                string
+	BaseURL                    string
+	OpenAPISchema              string
+	IncludeOperations          []string
+	ExcludeOperations          []string
+	IncludeTags                []string
+	ExcludeTags                []string
+	EnableSwaggerSchemas       bool
+	DescribeAllResponses       bool
 	DescribeFullResponseSchema bool
 }
 
@@ -146,9 +110,25 @@ func NewWithConfig(e *echo.Echo, config *Config) *EchoMCP {
 	name := config.Name
 	description := config.Description
 	version := config.Version
+	var swaggerSpec *swagger.SwaggerSpec
 
-	if config.EnableSwaggerSchemas && (name == "" || description == "" || version == "") {
+	// Try to parse OpenAPISchema if provided
+	if config.OpenAPISchema != "" {
+		if spec, err := swagger.ParseOpenAPISchema(config.OpenAPISchema); err == nil {
+			swaggerSpec = spec
+			if name == "" && spec.Info != nil && spec.Info.Title != "" {
+				name = spec.Info.Title
+			}
+			if description == "" && spec.Info != nil && spec.Info.Description != "" {
+				description = spec.Info.Description
+			}
+			if version == "" && spec.Info != nil && spec.Info.Version != "" {
+				version = spec.Info.Version
+			}
+		}
+	} else if config.EnableSwaggerSchemas && (name == "" || description == "" || version == "") {
 		if spec, err := swagger.GetSwaggerSpec(); err == nil && spec.Info != nil {
+			swaggerSpec = spec
 			if name == "" && spec.Info.Title != "" {
 				name = spec.Info.Title
 			}
@@ -171,6 +151,7 @@ func NewWithConfig(e *echo.Echo, config *Config) *EchoMCP {
 		registeredSchemas: make(map[string]types.RegisteredSchemaInfo),
 		tools:             []types.Tool{},
 		operations:        make(map[string]types.Operation),
+		swaggerSpec:       swaggerSpec,
 	}
 
 	// Set default execute function (in the future )
@@ -354,7 +335,7 @@ func (e *EchoMCP) setupServer() error {
 	filteredRoutes := e.filterRoutes(routes)
 
 	// Convert routes to tools
-	tools, operations := convert.ConvertRoutesToTools(filteredRoutes, registeredSchemas, e.config.EnableSwaggerSchemas)
+	tools, operations := convert.ConvertRoutesToTools(filteredRoutes, registeredSchemas, e.swaggerSpec)
 
 	e.tools = tools
 	e.operations = operations

@@ -11,6 +11,7 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/swaggo/swag"
+	"gopkg.in/yaml.v3"
 )
 
 type SwaggerSpec struct {
@@ -77,6 +78,25 @@ func GetSwaggerSpec() (*SwaggerSpec, error) {
 	var spec SwaggerSpec
 	if err := sonic.Unmarshal([]byte(swaggerJSON), &spec); err != nil {
 		return nil, fmt.Errorf("failed to parse swagger JSON: %w", err)
+	}
+
+	return &spec, nil
+}
+
+// ParseOpenAPISchema parses a raw OpenAPI schema string (JSON or YAML)
+func ParseOpenAPISchema(schemaStr string) (*SwaggerSpec, error) {
+	if schemaStr == "" {
+		return nil, errors.New("schema string is empty")
+	}
+
+	var spec SwaggerSpec
+
+	// Try to parse as JSON first
+	if err := sonic.Unmarshal([]byte(schemaStr), &spec); err != nil {
+		// If JSON parsing fails, try YAML
+		if err := yaml.Unmarshal([]byte(schemaStr), &spec); err != nil {
+			return nil, fmt.Errorf("failed to parse schema as JSON or YAML: %w", err)
+		}
 	}
 
 	return &spec, nil
