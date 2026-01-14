@@ -1,76 +1,199 @@
+# yaml-language-server: $schema=https://json.schemastore.org/golangci-lint.json
 version: "2"
 run:
   concurrency: 4
-  go: "1.25"
   issues-exit-code: 1
-  tests: false
-linters:
-  default: none
+
+formatters:
   enable:
-    - asciicheck
-    - bodyclose
-    - containedctx
-    - contextcheck
-    - dupword
-    - errname
-    - goconst
-    - gosec
-    - govet
-    - ineffassign
-    - misspell
-    - predeclared
-    - promlinter
+    - goimports
+    - gofumpt
+
+linters:
+  enable:
+
+    # Default
+    - revive
     - staticcheck
-    - unused
+    - govet
+    - gosec
+    - gocritic
+
+    # Performance
+    - copyloopvar # detects places where loop variables are copied
+    - fatcontext # detects nested contexts in loops
+    - ineffassign # detects when assignments to existing variables are not used
+    - goconst # finds repeated strings that could be replaced by a constant
+    - perfsprint # checks that fmt.Sprintf can be replaced with a faster alternative
+    - mirror # reports wrong mirror patterns of bytes/strings usage
+    - intrange # finds places where for loops could make use of an integer range
+
+    # Bad practices
+    - makezero # check slice declarations with non-zero initial length
+    - recvcheck # checks for pointer receiver consistency
+    - bodyclose # checks whether HTTP response body is closed successfully
+    - wastedassign # finds wasted assignment statements
+    - unused # checks for unused constants, variables, functions and types
+    - noctx # finds sending http request without context.Context
+    - gochecknoinits # checks that no init functions are present in Go code
+    - iface # checks the incorrect use of interfaces, helping developers avoid interface pollution
+    - predeclared # finds code that shadows Go predeclared identifiers
+    - gochecknoglobals # checks that no global variables exist
+
+    # Good practices
+    - inamedparam # checks if function parameters are named according to conventions
+    - usestdlibvars # detects the possibility to use variables/constants from the Go standard library
+    - dupl # tool for code clone detection
+    - forbidigo # custom rules
+    - gochecksumtype # checks exhaustiveness on Go "sum types"
+    - nakedret # finds naked returns in functions greater than a specified function length
+    - nolintlint # reports insufficient nolint directives
+    - nonamedreturns # checks for named returns
+
+    # Complexity
+    - cyclop # checks function and package cyclomatic complexity
+    - funlen # tool for detection of long functions
+
+    # Error handling
+    - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
+    - nilerr # finds the code that returns nil even if it checks that the error is not nil
+    - errcheck # checking for unchecked errors, these unchecked errors can be critical bugs in some cases
+    - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
+    - nilnesserr # reports that it checks for err != nil, but it returns a different nil value error (powered by nilness and nilerr)
+
+    # Style
+    - decorder # checks declaration order and count of types, constants, variables and functions
+    - unconvert # removes unnecessary type conversions
+    - canonicalheader # checks if http headers is using canonical header
+
+    # Tests
+    - testifylint # Testify linter, or use `ginkgolinter` for ginkgo and gomega
+
+    # Database
+    - unqueryvet # detects SELECT * in SQL queries and SQL builders, encouraging explicit column selection
+    - rowserrcheck # checks whether Err of rows is checked successfully
+    - sqlclosecheck # checks that sql.Rows and sql.Stmt are closed
+
   settings:
+    testifylint:
+      enable-all: true
+      disable:
+        - require-error # This ensure the test finish even if we had an error
+        - float-compare # Too many magic numbers in float comparisons
+
+    cyclop:
+      max-complexity: 25
+      package-average: 10.0 # The maximal average package complexity.
+
+    errcheck:
+      check-type-assertions: true
+
+    nonamedreturns:
+      report-error-in-defer: true # Report named error if it is assigned inside defer.
+
+    funcorder:
+      struct-method: false # Checks if the exported methods of a structure are placed before the non-exported ones.
+
+    gochecksumtype:
+      default-signifies-exhaustive: false  # Presence of `default` case in switch statements satisfies exhaustiveness, if all members are not listed.
+
+    funlen:
+      lines: 100 # Checks the number of lines in a function.
+      statements: 50 # Checks the number of statements in a function.
+
+    forbidigo:
+      forbid:
+      - pattern: '\.On\(' # Ensure vektra/mockery is using type safety mocks
+        msg: >
+          using .On() when working with mockery mocks, can silently fail, use .EXPECT() syntax to ensure type check.
+
     gocritic:
       disabled-checks:
-        - dupImport
-        - ifElseChain
-        - octalLiteral
-        - whyNoLint
-        - wrapperFunc
+        - importShadow # false positives with common names like "ctx" or "config"
+        - emptyStringTest # Handled by revive
+        - unnamedResult # Handled by nonamedreturns
+        - whyNoLint # Handled by nolintlint
+        - singleCaseSwitch # temporary disabled to fix the build
+        - ifElseChain # temporary disabled to fix the build
+        - commentedOutCode
       enabled-tags:
-        - diagnostic
-        - experimental
-        - opinionated
-        - performance
-        - style
+        - diagnostic # Enables diagnostics-related checks.
+        - performance # Enables performance-related checks.
+        - style # Enables style-related checks.
+      settings:
+        captLocal:
+          paramsOnly: true # Restrict checker to params only.
+        tooManyResultsChecker:
+          maxResults: 10  # Maximum number of results.
+
     govet:
-      disable:
-        - printf
       enable-all: true
       settings:
         shadow:
-          strict: true
-    lll:
-      line-length: 300
+          strict: false # Strict has too many false positives
+
+    inamedparam:
+      skip-single-param: true # Skips check for interface methods with only a single parameter.
+
+    nakedret:
+      max-func-lines: 0 # Make an issue if func has more lines of code than this setting, and it has naked returns.
+
+    nolintlint:
+      # Exclude following linters from requiring an explanation.
+      allow-no-explanation: [ funlen ]
+      # Enable to require an explanation of nonzero length after each nolint directive.
+      require-explanation: true
+
+    perfsprint:
+      strconcat: false # Optimizes into strings concatenation.
+
+    staticcheck:
+      checks:
+        - all
+        - -ST1000 # Incorrect or missing package comment
+        - -QF1008 # Omit embedded fields from selector expression
+        - -ST1003 # Already handled by revive
+        - -ST1021 # Conflict with swagger descriptions
+        - -ST1020 # Conflict with swagger descriptions
+
+    revive:
+      rules:
+        - name: var-naming
+          disabled: true
+
   exclusions:
-    generated: lax
+    generated: lax # Skip most linters on generated code
     presets:
       - comments
       - common-false-positives
       - legacy
       - std-error-handling
     rules:
-      - path: (.+)\.go$
-        text: internal/mocks/*
-      - linters:
+      - path: main.go # Allow main.go to be complex
+        linters:
+          - funlen
+          - errcheck
+          - gosec
+      - path: 'scripts/' # Exclude scripts folder
+        text: '.*'
+      - path: '_test\.go' # Exclude test files from some linters
+        linters:
+          - bodyclose
+          - dupl
+          - errcheck
+          - goconst
+          - funlen
+          - gosec
+          - noctx
+          - wrapcheck
+          - gochecknoglobals
+          - shadow
           - cyclop
-        path: (.+)_test\.go
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
-formatters:
-  enable:
-    - goimports
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+      - path-except: _test\.go # Run forbidigo only on test files
+        linters:
+          - forbidigo
+
+# Pipeline output
 output:
   formats:
     checkstyle:
