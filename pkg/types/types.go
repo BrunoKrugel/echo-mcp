@@ -80,7 +80,7 @@ func GetSchema(input any) map[string]any {
 	properties := make(map[string]any)
 	var required []string
 
-	for i := 0; i < typ.NumField(); i++ {
+	for i := range typ.NumField() {
 		field := typ.Field(i)
 		if !field.IsExported() {
 			continue
