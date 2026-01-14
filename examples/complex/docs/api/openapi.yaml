@@ -1,0 +1,31 @@
+openapi: 3.0.3
+info:
+  description: API for managing complex API
+  title: Complex API
+  version: 1.0.0
+servers:
+- description: Development server
+  url: http://localhost:8080
+paths:
+  /v1.0/users:
+    get:
+      description: Creates a new user
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+          description: Created
+      tags:
+      - Users
+components:
+  schemas:
+    UserResponse:
+      properties:
+        status:
+          type: string
+        user_id:
+          type: string
+      type: object
+
