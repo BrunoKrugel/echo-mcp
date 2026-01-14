@@ -30,7 +30,7 @@ func TestNew(t *testing.T) {
 		mcp := New(e)
 
 		// Should have empty version initially (will be set to default in handleInitialize)
-		assert.Equal(t, "", mcp.version)
+		assert.Empty(t, mcp.version)
 	})
 }
 
@@ -371,7 +371,7 @@ func TestBuildRequestURL(t *testing.T) {
 			"id": "123",
 		}
 
-		url := mcp.buildRequestURL(operation, parameters)
+		url := mcp.buildRequestURL(&operation, parameters)
 
 		assert.Equal(t, "http://localhost:8080/users/123", url)
 	})
@@ -387,7 +387,7 @@ func TestBuildRequestURL(t *testing.T) {
 			"limit": "10",
 		}
 
-		url := mcp.buildRequestURL(operation, parameters)
+		url := mcp.buildRequestURL(&operation, parameters)
 
 		assert.True(t, strings.HasPrefix(url, "http://localhost:8080/users?"))
 		assert.Contains(t, url, "page=1")
@@ -401,7 +401,7 @@ func TestBuildRequestURL(t *testing.T) {
 			Method: "GET",
 		}
 
-		url := mcpNoBase.buildRequestURL(operation, map[string]any{})
+		url := mcpNoBase.buildRequestURL(&operation, map[string]any{})
 
 		assert.Equal(t, "http://localhost:8080/test", url)
 	})

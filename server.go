@@ -29,7 +29,8 @@ package server
 
 import (
 	"bytes"
-	"encoding/json"
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -472,12 +473,12 @@ func (e *EchoMCP) handleToolsList(params any) (any, error) {
 func (e *EchoMCP) handleToolCall(params any) (any, error) {
 	paramMap, ok := params.(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("invalid parameters")
+		return nil, errors.New("invalid parameters")
 	}
 
 	toolName, ok := paramMap["name"].(string)
 	if !ok {
-		return nil, fmt.Errorf("missing tool name")
+		return nil, errors.New("missing tool name")
 	}
 
 	arguments, ok := paramMap["arguments"].(map[string]any)
@@ -508,7 +509,7 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 	}
 
 	// Build the request URL
-	requestURL := e.buildRequestURL(operation, parameters)
+	requestURL := e.buildRequestURL(&operation, parameters)
 
 	// Create HTTP request with appropriate body format
 	var body io.Reader
@@ -520,7 +521,7 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 			// Handle form data
 			formData := url.Values{}
 			for key, value := range parameters {
-				if isFormDataParameter(operation, key) {
+				if isFormDataParameter(&operation, key) {
 					formData.Add(key, fmt.Sprintf("%v", value))
 				}
 			}
@@ -534,15 +535,15 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 			bodyData := make(map[string]any)
 			for key, value := range parameters {
 				if !isPathParameter(operation.Path, key) &&
-					!isHeaderParameter(operation, key) &&
-					!isQueryParameter(operation, key) &&
-					!isFormDataParameter(operation, key) {
+					!isHeaderParameter(&operation, key) &&
+					!isQueryParameter(&operation, key) &&
+					!isFormDataParameter(&operation, key) {
 					bodyData[key] = value
 				}
 			}
 
 			if len(bodyData) > 0 {
-				jsonBody, err := json.Marshal(bodyData)
+				jsonBody, err := sonic.Marshal(bodyData)
 				if err != nil {
 					return nil, fmt.Errorf("failed to marshal request body: %w", err)
 				}
@@ -552,7 +553,7 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 		}
 	}
 
-	req, err := http.NewRequest(operation.Method, requestURL, body)
+	req, err := http.NewRequestWithContext(context.Background(), operation.Method, requestURL, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -564,7 +565,7 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 
 	// Add header parameters
 	for key, value := range parameters {
-		if isHeaderParameter(operation, key) {
+		if isHeaderParameter(&operation, key) {
 			req.Header.Set(key, fmt.Sprintf("%v", value))
 		}
 	}
@@ -598,7 +599,7 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 }
 
 // buildRequestURL builds the complete request URL with path and query parameters
-func (e *EchoMCP) buildRequestURL(operation types.Operation, parameters map[string]any) string {
+func (e *EchoMCP) buildRequestURL(operation *types.Operation, parameters map[string]any) string {
 	baseURL := e.baseURL
 	if baseURL == "" {
 		baseURL = "http://localhost:8080" // Default
@@ -639,19 +640,19 @@ func isPathParameter(path, paramName string) bool {
 	return strings.Contains(path, ":"+paramName)
 }
 
-func isHeaderParameter(operation types.Operation, paramName string) bool {
+func isHeaderParameter(operation *types.Operation, paramName string) bool {
 	return slices.Contains(operation.HeaderParams, paramName)
 }
 
-func isQueryParameter(operation types.Operation, paramName string) bool {
+func isQueryParameter(operation *types.Operation, paramName string) bool {
 	return slices.Contains(operation.QueryParams, paramName)
 }
 
-func isFormDataParameter(operation types.Operation, paramName string) bool {
+func isFormDataParameter(operation *types.Operation, paramName string) bool {
 	return slices.Contains(operation.FormDataParams, paramName)
 }
 
 // GetServerInfo returns the server information (useful for testing)
-func (e *EchoMCP) GetServerInfo() (name, version, description string) {
+func (e *EchoMCP) GetServerInfo() (string, string, string) {
 	return e.name, e.version, e.description
 }

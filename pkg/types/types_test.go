@@ -107,7 +107,7 @@ func TestGetSchema(t *testing.T) {
 		assert.Equal(t, "object", schema["type"])
 		properties, ok := schema["properties"].(map[string]any)
 		assert.True(t, ok)
-		assert.Len(t, properties, 0)
+		assert.Empty(t, properties)
 	})
 
 	t.Run("Should handle nil input", func(t *testing.T) {
@@ -116,7 +116,7 @@ func TestGetSchema(t *testing.T) {
 		assert.Equal(t, "object", schema["type"])
 		properties, ok := schema["properties"].(map[string]any)
 		assert.True(t, ok)
-		assert.Len(t, properties, 0)
+		assert.Empty(t, properties)
 	})
 
 	t.Run("Should handle non-struct types", func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestGetSchema(t *testing.T) {
 		assert.Equal(t, "object", schema["type"])
 		properties, ok := schema["properties"].(map[string]any)
 		assert.True(t, ok)
-		assert.Len(t, properties, 0)
+		assert.Empty(t, properties)
 	})
 
 	t.Run("Should handle arrays and slices", func(t *testing.T) {
@@ -377,7 +377,7 @@ func TestMCPMessage(t *testing.T) {
 		}
 
 		assert.Equal(t, "2.0", message.Jsonrpc)
-		assert.Equal(t, json.RawMessage(`"test-id"`), message.ID)
+		assert.JSONEq(t, `"test-id"`, string(message.ID))
 		assert.Equal(t, "tools/list", message.Method)
 		assert.Equal(t, params, message.Params)
 	})

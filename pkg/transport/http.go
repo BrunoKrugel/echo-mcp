@@ -52,7 +52,6 @@ func (h *HTTPTransport) HandleConnection(c echo.Context) error {
 
 // HandleMessage processes incoming MCP messages via POST
 func (h *HTTPTransport) HandleMessage(c echo.Context) error {
-
 	sessionID := c.Request().Header.Get("Mcp-Session-Id")
 
 	var msg types.MCPMessage

@@ -4,6 +4,7 @@
 package swagger
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -63,15 +64,14 @@ type SwaggerSchema struct {
 
 // GetSwaggerSpec retrieves the swagger specification from swaggo
 func GetSwaggerSpec() (*SwaggerSpec, error) {
-
 	info := swag.GetSwagger("swagger")
 	if info == nil {
-		return nil, fmt.Errorf("swagger documentation not found - make sure to import docs package and generate swagger")
+		return nil, errors.New("swagger documentation not found - make sure to import docs package and generate swagger")
 	}
 
 	swaggerJSON := info.ReadDoc()
 	if swaggerJSON == "" {
-		return nil, fmt.Errorf("swagger documentation is empty")
+		return nil, errors.New("swagger documentation is empty")
 	}
 
 	var spec SwaggerSpec
@@ -112,7 +112,10 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 		"properties": map[string]any{},
 	}
 
-	properties := schema["properties"].(map[string]any)
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		return schema, nil
+	}
 	var required []string
 
 	// Process parameters
@@ -137,7 +140,7 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 			}
 		} else if param.In == "body" && param.Schema != nil {
 			// Skip body parameters for GET requests (they're likely response schemas mistakenly marked as body)
-			if strings.ToUpper(method) == "GET" {
+			if strings.EqualFold(method, "GET") {
 				continue
 			}
 

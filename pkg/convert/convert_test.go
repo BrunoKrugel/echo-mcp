@@ -40,8 +40,8 @@ func TestConvertRoutesToTools(t *testing.T) {
 
 		tools, operations := ConvertRoutesToTools(routes, nil, false)
 
-		assert.Len(t, tools, 0)
-		assert.Len(t, operations, 0)
+		assert.Empty(t, tools)
+		assert.Empty(t, operations)
 	})
 
 	t.Run("Should use registered schemas when available", func(t *testing.T) {
@@ -295,7 +295,7 @@ func TestExtractPathParameters(t *testing.T) {
 	t.Run("Should handle path without parameters", func(t *testing.T) {
 		params := extractPathParameters("/users")
 
-		assert.Len(t, params, 0)
+		assert.Empty(t, params)
 	})
 
 	t.Run("Should handle complex path patterns", func(t *testing.T) {
@@ -309,7 +309,7 @@ func TestExtractPathParameters(t *testing.T) {
 	t.Run("Should handle empty path", func(t *testing.T) {
 		params := extractPathParameters("")
 
-		assert.Len(t, params, 0)
+		assert.Empty(t, params)
 	})
 }
 
@@ -335,7 +335,7 @@ func TestEchoPathToSwaggerPath(t *testing.T) {
 	t.Run("Should handle empty path", func(t *testing.T) {
 		swaggerPath := echoPathToSwaggerPath("")
 
-		assert.Equal(t, "", swaggerPath)
+		assert.Empty(t, swaggerPath)
 	})
 }
 
@@ -345,7 +345,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 
 		description := getSwaggerDescription(route, nil)
 
-		assert.Equal(t, "", description)
+		assert.Empty(t, description)
 	})
 
 	t.Run("Should return summary from swagger spec", func(t *testing.T) {
@@ -418,7 +418,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 
 		description := getSwaggerDescription(route, swaggerSpec)
 
-		assert.Equal(t, "", description)
+		assert.Empty(t, description)
 	})
 }
 
@@ -453,7 +453,7 @@ func TestExtractHeaderParameters(t *testing.T) {
 
 		headers := extractHeaderParameters(route, nil)
 
-		assert.Len(t, headers, 0)
+		assert.Empty(t, headers)
 	})
 }
 
@@ -488,7 +488,7 @@ func TestExtractQueryParameters(t *testing.T) {
 
 		queryParams := extractQueryParameters(route, nil)
 
-		assert.Len(t, queryParams, 0)
+		assert.Empty(t, queryParams)
 	})
 }
 
@@ -523,6 +523,6 @@ func TestExtractFormDataParameters(t *testing.T) {
 
 		formDataParams := extractFormDataParameters(route, nil)
 
-		assert.Len(t, formDataParams, 0)
+		assert.Empty(t, formDataParams)
 	})
 }

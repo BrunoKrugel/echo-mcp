@@ -98,7 +98,7 @@ func TestGetOperationSchemaSkipsBodyForGET(t *testing.T) {
 		assert.False(t, bodyExists)
 
 		// Should have empty properties
-		assert.Len(t, properties, 0)
+		assert.Empty(t, properties)
 	})
 }
 

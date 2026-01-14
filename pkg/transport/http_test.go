@@ -3,12 +3,14 @@ package transport
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,8 +25,8 @@ func TestNewHTTPTransport(t *testing.T) {
 		assert.Equal(t, "/mcp", transport.mountPath)
 		assert.NotNil(t, transport.handlers)
 		assert.NotNil(t, transport.sessions)
-		assert.Len(t, transport.handlers, 0)
-		assert.Len(t, transport.sessions, 0)
+		assert.Empty(t, transport.handlers)
+		assert.Empty(t, transport.sessions)
 	})
 
 	t.Run("Should handle different mount paths", func(t *testing.T) {
@@ -106,14 +108,15 @@ func TestHTTPTransport_HandleConnection(t *testing.T) {
 		transport := NewHTTPTransport("/mcp")
 
 		e := echo.New()
-		req := httptest.NewRequest(http.MethodGet, "/mcp", nil)
+		req := httptest.NewRequest(http.MethodGet, "/mcp", http.NoBody)
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
 		err := transport.HandleConnection(c)
 
 		assert.Error(t, err)
-		httpErr, ok := err.(*echo.HTTPError)
+		httpErr := &echo.HTTPError{}
+		ok := errors.As(err, &httpErr)
 		assert.True(t, ok)
 		assert.Equal(t, http.StatusMethodNotAllowed, httpErr.Code)
 		assert.Contains(t, httpErr.Message.(string), "GET method not supported")
@@ -140,7 +143,7 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 			Params:  map[string]any{},
 		}
 
-		msgBytes, err := json.Marshal(message)
+		msgBytes, err := sonic.Marshal(message)
 		require.NoError(t, err)
 
 		e := echo.New()
@@ -155,7 +158,7 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 
 		var response map[string]any
-		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		err = sonic.Unmarshal(rec.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "2.0", response["jsonrpc"])
 		assert.Equal(t, "test-id", response["id"])
@@ -180,7 +183,7 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 			Params:  map[string]any{},
 		}
 
-		msgBytes, err := json.Marshal(message)
+		msgBytes, err := sonic.Marshal(message)
 		require.NoError(t, err)
 
 		e := echo.New()
@@ -194,7 +197,7 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 		assert.NoError(t, err)
 
 		var response map[string]any
-		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		err = sonic.Unmarshal(rec.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
 		result := response["result"].(map[string]any)
@@ -223,7 +226,7 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 			},
 		}
 
-		msgBytes, err := json.Marshal(message)
+		msgBytes, err := sonic.Marshal(message)
 		require.NoError(t, err)
 
 		e := echo.New()
@@ -237,7 +240,7 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 		assert.NoError(t, err)
 
 		var response map[string]any
-		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		err = sonic.Unmarshal(rec.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
 		result := response["result"].(map[string]any)
@@ -269,7 +272,7 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 			Params:  map[string]any{},
 		}
 
-		msgBytes, err := json.Marshal(message)
+		msgBytes, err := sonic.Marshal(message)
 		require.NoError(t, err)
 
 		e := echo.New()
@@ -284,7 +287,7 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 
 		var response map[string]any
-		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		err = sonic.Unmarshal(rec.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Contains(t, response, "error")
 
@@ -306,7 +309,7 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 			Params:  map[string]any{},
 		}
 
-		msgBytes, err := json.Marshal(message)
+		msgBytes, err := sonic.Marshal(message)
 		require.NoError(t, err)
 
 		e := echo.New()
@@ -320,7 +323,7 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 		assert.NoError(t, err)
 
 		var response map[string]any
-		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		err = sonic.Unmarshal(rec.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Contains(t, response, "error")
 	})
@@ -342,7 +345,7 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 			"params":  map[string]any{},
 		}
 
-		msgBytes, err := json.Marshal(message)
+		msgBytes, err := sonic.Marshal(message)
 		require.NoError(t, err)
 
 		e := echo.New()
@@ -361,18 +364,6 @@ func TestHTTPTransport_HandleMessage(t *testing.T) {
 	})
 }
 
-func TestHTTPTransport_NotifyToolsChanged(t *testing.T) {
-	t.Run("Should handle tools changed notification", func(t *testing.T) {
-		transport := NewHTTPTransport("/mcp")
-
-		// This is a no-op in HTTP transport, just verify it doesn't panic
-		transport.NotifyToolsChanged()
-
-		// Should not crash or cause any issues
-		assert.True(t, true)
-	})
-}
-
 func TestSession(t *testing.T) {
 	t.Run("Should create session with ID and timestamp", func(t *testing.T) {
 		session := &Session{
@@ -381,7 +372,7 @@ func TestSession(t *testing.T) {
 		}
 
 		assert.Equal(t, "test-session-id", session.ID)
-		assert.Greater(t, session.Created, int64(0))
+		assert.Positive(t, session.Created)
 	})
 }
 
@@ -426,7 +417,7 @@ func TestHTTPTransport_Integration(t *testing.T) {
 		initMsg := types.MCPMessage{
 			Jsonrpc: "2.0", ID: json.RawMessage(`"1"`), Method: "initialize", Params: map[string]any{},
 		}
-		msgBytes, _ := json.Marshal(initMsg)
+		msgBytes, _ := sonic.Marshal(initMsg)
 		req := httptest.NewRequest(http.MethodPost, "/mcp", bytes.NewBuffer(msgBytes))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
@@ -440,7 +431,7 @@ func TestHTTPTransport_Integration(t *testing.T) {
 		listMsg := types.MCPMessage{
 			Jsonrpc: "2.0", ID: json.RawMessage(`"2"`), Method: "tools/list", Params: map[string]any{},
 		}
-		msgBytes, _ = json.Marshal(listMsg)
+		msgBytes, _ = sonic.Marshal(listMsg)
 		req = httptest.NewRequest(http.MethodPost, "/mcp", bytes.NewBuffer(msgBytes))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec = httptest.NewRecorder()
@@ -460,7 +451,7 @@ func TestHTTPTransport_Integration(t *testing.T) {
 				"arguments": map[string]any{"param": "value"},
 			},
 		}
-		msgBytes, _ = json.Marshal(callMsg)
+		msgBytes, _ = sonic.Marshal(callMsg)
 		req = httptest.NewRequest(http.MethodPost, "/mcp", bytes.NewBuffer(msgBytes))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec = httptest.NewRecorder()
@@ -471,7 +462,7 @@ func TestHTTPTransport_Integration(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 
 		var response map[string]any
-		err = json.Unmarshal(rec.Body.Bytes(), &response)
+		err = sonic.Unmarshal(rec.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
 		result := response["result"].(map[string]any)

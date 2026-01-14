@@ -109,7 +109,10 @@ func generateInputSchema(route *echo.Route, registeredSchema types.RegisteredSch
 		"properties": map[string]any{},
 	}
 
-	properties := schema["properties"].(map[string]any)
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		return schema
+	}
 	var required []string
 
 	// Extract path parameters
