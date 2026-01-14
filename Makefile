@@ -55,5 +55,5 @@ format: ## Format code and organize imports
 
 .PHONY: lint
 lint: ## Runs golangci-lint
-	golangci-lint run
+	golangci-lint run --fix
 
