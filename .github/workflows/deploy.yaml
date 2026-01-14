@@ -1,0 +1,75 @@
+name: Create patch release on merged PR
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  create-release:
+    if: ${{ github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Get latest semver tag
+        id: tag
+        run: |
+          set -e
+          latest=$(git tag --list 'v[0-9]*' --sort=v:refname | tail -n1)
+          if [ -z "$latest" ]; then
+            latest="v0.0.0"
+          fi
+          echo "latest=$latest" >> $GITHUB_OUTPUT
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          set -e
+          latest=${{ steps.tag.outputs.latest }}
+          ver=${latest#v}
+          IFS='.' read -r major minor patch <<< "$ver"
+          patch=$((patch + 1))
+          new_tag="v${major}.${minor}.${patch}"
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+
+      - name: Create git tag and push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          new=${{ steps.bump.outputs.new_tag }}
+          # ensure remote uses token so push works in all runners
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}"
+          git tag -a "$new" -m "Release $new"
+          git push origin "$new"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

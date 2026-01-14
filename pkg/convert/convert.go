@@ -16,17 +16,9 @@ import (
 )
 
 // ConvertRoutesToTools converts Echo routes into a list of MCP Tools and an operation map.
-func ConvertRoutesToTools(routes []*echo.Route, registeredSchemas map[string]types.RegisteredSchemaInfo, enableSwagger bool) ([]types.Tool, map[string]types.Operation) {
+func ConvertRoutesToTools(routes []*echo.Route, registeredSchemas map[string]types.RegisteredSchemaInfo, swaggerSpec *swagger.SwaggerSpec) ([]types.Tool, map[string]types.Operation) {
 	tools := make([]types.Tool, 0)
 	operations := make(map[string]types.Operation)
-
-	// Get swagger spec if enabled
-	var swaggerSpec *swagger.SwaggerSpec
-	if enableSwagger {
-		if spec, err := swagger.GetSwaggerSpec(); err == nil {
-			swaggerSpec = spec
-		}
-	}
 
 	for _, route := range routes {
 		if route.Method == "" || route.Path == "" {
@@ -109,7 +101,10 @@ func generateInputSchema(route *echo.Route, registeredSchema types.RegisteredSch
 		"properties": map[string]any{},
 	}
 
-	properties := schema["properties"].(map[string]any)
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		return schema
+	}
 	var required []string
 
 	// Extract path parameters

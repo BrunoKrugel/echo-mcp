@@ -18,7 +18,7 @@ func TestConvertRoutesToTools(t *testing.T) {
 			{Path: "/users", Method: "POST"},
 		}
 
-		tools, operations := ConvertRoutesToTools(routes, nil, false)
+		tools, operations := ConvertRoutesToTools(routes, nil, nil)
 
 		assert.Len(t, tools, 3)
 		assert.Len(t, operations, 3)
@@ -38,10 +38,10 @@ func TestConvertRoutesToTools(t *testing.T) {
 	t.Run("Should handle empty routes", func(t *testing.T) {
 		routes := []*echo.Route{}
 
-		tools, operations := ConvertRoutesToTools(routes, nil, false)
+		tools, operations := ConvertRoutesToTools(routes, nil, nil)
 
-		assert.Len(t, tools, 0)
-		assert.Len(t, operations, 0)
+		assert.Empty(t, tools)
+		assert.Empty(t, operations)
 	})
 
 	t.Run("Should use registered schemas when available", func(t *testing.T) {
@@ -60,7 +60,7 @@ func TestConvertRoutesToTools(t *testing.T) {
 			},
 		}
 
-		tools, operations := ConvertRoutesToTools(routes, registeredSchemas, false)
+		tools, operations := ConvertRoutesToTools(routes, registeredSchemas, nil)
 
 		assert.Len(t, tools, 1)
 		assert.Len(t, operations, 1)
@@ -87,7 +87,7 @@ func TestConvertRoutesToTools(t *testing.T) {
 
 		// This will attempt to use swagger but likely fail in test environment
 		// The important thing is that it doesn't crash
-		tools, operations := ConvertRoutesToTools(routes, nil, true)
+		tools, operations := ConvertRoutesToTools(routes, nil, nil)
 
 		assert.Len(t, tools, 1)
 		assert.Len(t, operations, 1)
@@ -295,7 +295,7 @@ func TestExtractPathParameters(t *testing.T) {
 	t.Run("Should handle path without parameters", func(t *testing.T) {
 		params := extractPathParameters("/users")
 
-		assert.Len(t, params, 0)
+		assert.Empty(t, params)
 	})
 
 	t.Run("Should handle complex path patterns", func(t *testing.T) {
@@ -309,7 +309,7 @@ func TestExtractPathParameters(t *testing.T) {
 	t.Run("Should handle empty path", func(t *testing.T) {
 		params := extractPathParameters("")
 
-		assert.Len(t, params, 0)
+		assert.Empty(t, params)
 	})
 }
 
@@ -335,7 +335,7 @@ func TestEchoPathToSwaggerPath(t *testing.T) {
 	t.Run("Should handle empty path", func(t *testing.T) {
 		swaggerPath := echoPathToSwaggerPath("")
 
-		assert.Equal(t, "", swaggerPath)
+		assert.Empty(t, swaggerPath)
 	})
 }
 
@@ -345,7 +345,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 
 		description := getSwaggerDescription(route, nil)
 
-		assert.Equal(t, "", description)
+		assert.Empty(t, description)
 	})
 
 	t.Run("Should return summary from swagger spec", func(t *testing.T) {
@@ -418,7 +418,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 
 		description := getSwaggerDescription(route, swaggerSpec)
 
-		assert.Equal(t, "", description)
+		assert.Empty(t, description)
 	})
 }
 
@@ -453,7 +453,7 @@ func TestExtractHeaderParameters(t *testing.T) {
 
 		headers := extractHeaderParameters(route, nil)
 
-		assert.Len(t, headers, 0)
+		assert.Empty(t, headers)
 	})
 }
 
@@ -488,7 +488,7 @@ func TestExtractQueryParameters(t *testing.T) {
 
 		queryParams := extractQueryParameters(route, nil)
 
-		assert.Len(t, queryParams, 0)
+		assert.Empty(t, queryParams)
 	})
 }
 
@@ -523,6 +523,6 @@ func TestExtractFormDataParameters(t *testing.T) {
 
 		formDataParams := extractFormDataParameters(route, nil)
 
-		assert.Len(t, formDataParams, 0)
+		assert.Empty(t, formDataParams)
 	})
 }

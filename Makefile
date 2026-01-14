@@ -21,11 +21,6 @@ clean: ## Runs mod tidy
 update: ## Update go modules
 	go get -t -u ./...
 
-.PHONY: swag
-swag: # Install swaggo module and updates all swagger files
-	swag init -g ./examples/simple/main.go --parseInternal --outputTypes "go,yaml"
-	swag fmt
-
 ########################################################################################################################
 ##@ Run
 ########################################################################################################################
@@ -34,9 +29,22 @@ swag: # Install swaggo module and updates all swagger files
 run: ## Execute the application locally
 	go run -race .
 
-.PHONY: example
-example: ## Run the example application
+.PHONY: swag
+swag: ## Run the swaggo example application
 	go run -race ./examples/simple/main.go
+
+.PHONY: openapi
+openapi: ## Run the openapi example application
+	go run -race ./examples/complex/main.go
+
+########################################################################################################################
+##@ Testing
+########################################################################################################################
+
+
+.PHONY: mcp
+mcp: ## Run the mcp client inspector
+	npx @modelcontextprotocol/inspector http://localhost:8080/mcp
 
 .PHONY: test
 test: # Runs all the tests in the application and returns if they passed or failed, along with a coverage percentage
@@ -44,7 +52,7 @@ test: # Runs all the tests in the application and returns if they passed or fail
 	PROFILE=local go test -parallel 10 -json -cover ./... | tparse -all -pass -trimpath=github.com/BrunoKrugel/echo-mcp/
 
 ########################################################################################################################
-##@ Code Style
+##@ Quality
 ########################################################################################################################
 
 .PHONY: format
@@ -55,5 +63,5 @@ format: ## Format code and organize imports
 
 .PHONY: lint
 lint: ## Runs golangci-lint
-	golangci-lint run
+	golangci-lint run --fix
 

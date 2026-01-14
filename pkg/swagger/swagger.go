@@ -4,12 +4,14 @@
 package swagger
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/bytedance/sonic"
 	"github.com/swaggo/swag"
+	"gopkg.in/yaml.v3"
 )
 
 type SwaggerSpec struct {
@@ -63,20 +65,38 @@ type SwaggerSchema struct {
 
 // GetSwaggerSpec retrieves the swagger specification from swaggo
 func GetSwaggerSpec() (*SwaggerSpec, error) {
-
 	info := swag.GetSwagger("swagger")
 	if info == nil {
-		return nil, fmt.Errorf("swagger documentation not found - make sure to import docs package and generate swagger")
+		return nil, errors.New("swagger documentation not found - make sure to import docs package and generate swagger")
 	}
 
 	swaggerJSON := info.ReadDoc()
 	if swaggerJSON == "" {
-		return nil, fmt.Errorf("swagger documentation is empty")
+		return nil, errors.New("swagger documentation is empty")
 	}
 
 	var spec SwaggerSpec
 	if err := sonic.Unmarshal([]byte(swaggerJSON), &spec); err != nil {
 		return nil, fmt.Errorf("failed to parse swagger JSON: %w", err)
+	}
+
+	return &spec, nil
+}
+
+// ParseOpenAPISchema parses a raw OpenAPI schema string (JSON or YAML)
+func ParseOpenAPISchema(schemaStr string) (*SwaggerSpec, error) {
+	if schemaStr == "" {
+		return nil, errors.New("schema string is empty")
+	}
+
+	var spec SwaggerSpec
+
+	// Try to parse as JSON first
+	if err := sonic.Unmarshal([]byte(schemaStr), &spec); err != nil {
+		// If JSON parsing fails, try YAML
+		if err := yaml.Unmarshal([]byte(schemaStr), &spec); err != nil {
+			return nil, fmt.Errorf("failed to parse schema as JSON or YAML: %w", err)
+		}
 	}
 
 	return &spec, nil
@@ -112,7 +132,10 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 		"properties": map[string]any{},
 	}
 
-	properties := schema["properties"].(map[string]any)
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		return schema, nil
+	}
 	var required []string
 
 	// Process parameters
@@ -137,7 +160,7 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 			}
 		} else if param.In == "body" && param.Schema != nil {
 			// Skip body parameters for GET requests (they're likely response schemas mistakenly marked as body)
-			if strings.ToUpper(method) == "GET" {
+			if strings.EqualFold(method, "GET") {
 				continue
 			}
 
