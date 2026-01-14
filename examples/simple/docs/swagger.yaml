@@ -1,0 +1,142 @@
+basePath: /api/v1
+definitions:
+  main.AppError:
+    properties:
+      error:
+        type: string
+    type: object
+  main.PingPongResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  main.UserPatchRequest:
+    properties:
+      name:
+        description: User Full Name
+        type: string
+      status:
+        description: User Status
+        enum:
+        - active
+        - inactive
+        type: string
+    required:
+    - name
+    - status
+    type: object
+  main.UserRequest:
+    properties:
+      id:
+        type: string
+    required:
+    - id
+    type: object
+  main.UserResponse:
+    properties:
+      status:
+        type: string
+      user_id:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a sample API demonstrating Echo-MCP
+  termsOfService: http://swagger.io/terms/
+  title: Echo-MCP Swagger Example API
+  version: "1.0"
+paths:
+  /ping:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.PingPongResponse'
+      security:
+      - ApiKey: []
+      summary: Responds with pong to verify server is running
+      tags:
+      - Ping Pong
+  /users/{id}:
+    get:
+      parameters:
+      - description: Request body
+        in: body
+        name: Request
+        required: true
+        schema:
+          $ref: '#/definitions/main.UserRequest'
+      - description: User ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.AppError'
+      security:
+      - ApiKey: []
+      summary: Responds with user ID information
+      tags:
+      - Users
+    patch:
+      parameters:
+      - description: Request body
+        in: body
+        name: Request
+        required: true
+        schema:
+          $ref: '#/definitions/main.UserPatchRequest'
+      - description: User ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.AppError'
+      security:
+      - ApiKey: []
+      summary: Updates a user
+      tags:
+      - Users
+  /v1.0/Users:
+    post:
+      parameters:
+      - description: Request body
+        in: body
+        name: Request
+        required: true
+        schema:
+          $ref: '#/definitions/main.UserRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.AppError'
+      security:
+      - ApiKey: []
+      summary: Creates a new user
+      tags:
+      - Users
+swagger: "2.0"

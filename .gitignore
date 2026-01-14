@@ -45,5 +45,4 @@ coverage.txt
 coverage.html
 mcp-inspector-config.json
 main
-docs/
 *.xml
