@@ -8,6 +8,7 @@ require (
 	github.com/labstack/echo/v4 v4.15.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.1
+	github.com/swaggest/jsonschema-go v0.3.74
 	github.com/swaggest/openapi-go v0.2.60
 	github.com/swaggo/echo-swagger v1.4.1
 	github.com/swaggo/swag v1.16.6
@@ -36,7 +37,6 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/swaggest/jsonschema-go v0.3.74 // indirect
 	github.com/swaggest/refl v1.3.1 // indirect
 	github.com/swaggo/files/v2 v2.0.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
