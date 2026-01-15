@@ -127,7 +127,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1.0/Users": {
+        "/v1.0/users": {
             "post": {
                 "security": [
                     {

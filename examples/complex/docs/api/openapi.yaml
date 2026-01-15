@@ -7,9 +7,80 @@ servers:
 - description: Development server
   url: http://localhost:8080
 paths:
-  /v1.0/users:
+  /ping:
     get:
+      description: Ping endpoint for health check
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingPongResponse'
+          description: OK
+      tags:
+      - Health
+  /pong:
+    get:
+      description: Pong endpoint for health check
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingPongResponse'
+          description: OK
+      tags:
+      - Health
+  /users/{id}:
+    get:
+      description: Get a user by ID
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          example: "123"
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+          description: OK
+      tags:
+      - Users
+    patch:
+      description: Update a user
+      parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          example: "123"
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchUserRequest'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+          description: OK
+      tags:
+      - Users
+  /v1.0/users:
+    post:
       description: Creates a new user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
       responses:
         "201":
           content:
@@ -21,6 +92,24 @@ paths:
       - Users
 components:
   schemas:
+    PatchUserRequest:
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+      type: object
+    PingPongResponse:
+      properties:
+        message:
+          example: pong
+          type: string
+      type: object
+    UserRequest:
+      properties:
+        id:
+          type: string
+      type: object
     UserResponse:
       properties:
         status:
