@@ -3,11 +3,11 @@ package swagger
 import "strings"
 
 type OpenAPISpec struct {
-	OpenAPI    string              `yaml:"openapi"`
-	Info       Info                `yaml:"info"`
-	Servers    []Server            `yaml:"servers"`
 	Paths      map[string]PathItem `yaml:"paths"`
 	Components Components          `yaml:"components"`
+	Info       Info                `yaml:"info"`
+	OpenAPI    string              `yaml:"openapi"`
+	Servers    []Server            `yaml:"servers"`
 }
 
 type Info struct {
@@ -24,18 +24,18 @@ type Server struct {
 type PathItem map[string]Operation
 
 type Operation struct {
+	RequestBody *RequestBody        `yaml:"requestBody,omitempty"`
+	Responses   map[string]Response `yaml:"responses"`
 	Description string              `yaml:"description"`
 	Tags        []string            `yaml:"tags"`
 	Parameters  []Parameter         `yaml:"parameters,omitempty"`
-	RequestBody *RequestBody        `yaml:"requestBody,omitempty"`
-	Responses   map[string]Response `yaml:"responses"`
 }
 
 type Parameter struct {
+	Schema   ParameterSchema `yaml:"schema"`
 	In       string          `yaml:"in"`
 	Name     string          `yaml:"name"`
 	Required bool            `yaml:"required"`
-	Schema   ParameterSchema `yaml:"schema"`
 }
 
 type ParameterSchema struct {
@@ -44,8 +44,8 @@ type ParameterSchema struct {
 }
 
 type Response struct {
-	Description string               `yaml:"description"`
 	Content     map[string]MediaType `yaml:"content,omitempty"`
+	Description string               `yaml:"description"`
 }
 
 type MediaType struct {
@@ -53,9 +53,9 @@ type MediaType struct {
 }
 
 type Schema struct {
+	Properties map[string]SchemaProperty `yaml:"properties,omitempty"`
 	Ref        string                    `yaml:"$ref,omitempty"`
 	Type       string                    `yaml:"type,omitempty"`
-	Properties map[string]SchemaProperty `yaml:"properties,omitempty"`
 }
 
 type SchemaProperty struct {
@@ -93,7 +93,7 @@ func (o *OpenAPISpec) ToSwaggerSpec() *SwaggerSpec {
 		swaggerPath := SwaggerPath{}
 
 		for method, op := range pathItem {
-			swaggerPath[method] = convertOperation(op)
+			swaggerPath[method] = convertOperation(&op)
 		}
 
 		spec.Paths[path] = swaggerPath
@@ -102,7 +102,7 @@ func (o *OpenAPISpec) ToSwaggerSpec() *SwaggerSpec {
 	return spec
 }
 
-func convertOperation(op Operation) SwaggerOperation {
+func convertOperation(op *Operation) SwaggerOperation {
 	operation := SwaggerOperation{
 		Summary:     op.Description,
 		Description: op.Description,
