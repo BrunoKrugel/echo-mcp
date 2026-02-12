@@ -116,7 +116,7 @@ paths:
       summary: Updates a user
       tags:
       - Users
-  /v1.0/Users:
+  /v1.0/users:
     post:
       parameters:
       - description: Request body

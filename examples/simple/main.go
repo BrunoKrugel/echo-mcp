@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	server "github.com/BrunoKrugel/echo-mcp"
-	_ "github.com/BrunoKrugel/echo-mcp/examples/simple/docs" // Need to generate swagger manually with make swag
+	_ "github.com/BrunoKrugel/echo-mcp/examples/simple/docs"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	echoSwagger "github.com/swaggo/echo-swagger"
@@ -63,7 +63,7 @@ func main() {
 
 	e.GET("/users/:id", UserIDHandler)
 
-	e.POST("/v1.0/Users", CreateUsersHandler)
+	e.POST("/v1.0/users", CreateUsersHandler)
 
 	// Register Swagger
 	e.GET("/swagger/*", echoSwagger.EchoWrapHandler())
@@ -128,7 +128,7 @@ func UserIDHandler(c echo.Context) error {
 //	@Param		Request	body		main.UserRequest	true	"Request body"
 //	@Success	200		{object}	main.UserResponse
 //	@Failure	400		{object}	main.AppError
-//	@Router		/v1.0/Users [POST]
+//	@Router		/v1.0/users [POST]
 func CreateUsersHandler(c echo.Context) error {
 	var user UserRequest
 	if err := c.Bind(&user); err != nil {

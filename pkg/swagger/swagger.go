@@ -90,14 +90,17 @@ func ParseOpenAPISchema(schemaStr string) (*SwaggerSpec, error) {
 	}
 
 	var spec SwaggerSpec
+	var openAPI OpenAPISpec
 
 	// Try to parse as JSON first
 	if err := sonic.Unmarshal([]byte(schemaStr), &spec); err != nil {
 		// If JSON parsing fails, try YAML
-		if err := yaml.Unmarshal([]byte(schemaStr), &spec); err != nil {
+		if err := yaml.Unmarshal([]byte(schemaStr), &openAPI); err != nil {
 			return nil, fmt.Errorf("failed to parse schema as JSON or YAML: %w", err)
 		}
 	}
+
+	spec = *openAPI.ToSwaggerSpec()
 
 	return &spec, nil
 }
