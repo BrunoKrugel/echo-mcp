@@ -358,11 +358,11 @@ func TestHandleToolCall(t *testing.T) {
 	})
 }
 
-func TestBuildRequestURL(t *testing.T) {
+func TestBuildRequestPath(t *testing.T) {
 	e := echo.New()
-	mcp := NewWithConfig(e, &Config{BaseURL: "http://localhost:8080"})
+	mcp := New(e)
 
-	t.Run("Should build URL with path parameters", func(t *testing.T) {
+	t.Run("Should build path with path parameters", func(t *testing.T) {
 		operation := types.Operation{
 			Path:   "/users/:id",
 			Method: "GET",
@@ -371,12 +371,12 @@ func TestBuildRequestURL(t *testing.T) {
 			"id": "123",
 		}
 
-		url := mcp.buildRequestURL(&operation, parameters)
+		path := mcp.buildRequestPath(&operation, parameters)
 
-		assert.Equal(t, "http://localhost:8080/users/123", url)
+		assert.Equal(t, "/users/123", path)
 	})
 
-	t.Run("Should build URL with query parameters", func(t *testing.T) {
+	t.Run("Should build path with query parameters", func(t *testing.T) {
 		operation := types.Operation{
 			Path:        "/users",
 			Method:      "GET",
@@ -387,23 +387,86 @@ func TestBuildRequestURL(t *testing.T) {
 			"limit": "10",
 		}
 
-		url := mcp.buildRequestURL(&operation, parameters)
+		path := mcp.buildRequestPath(&operation, parameters)
 
-		assert.True(t, strings.HasPrefix(url, "http://localhost:8080/users?"))
-		assert.Contains(t, url, "page=1")
-		assert.Contains(t, url, "limit=10")
+		assert.True(t, strings.HasPrefix(path, "/users?"))
+		assert.Contains(t, path, "page=1")
+		assert.Contains(t, path, "limit=10")
 	})
 
-	t.Run("Should use default base URL when not configured", func(t *testing.T) {
-		mcpNoBase := New(e)
+	t.Run("Should build path without base URL", func(t *testing.T) {
 		operation := types.Operation{
 			Path:   "/test",
 			Method: "GET",
 		}
 
-		url := mcpNoBase.buildRequestURL(&operation, map[string]any{})
+		path := mcp.buildRequestPath(&operation, map[string]any{})
 
-		assert.Equal(t, "http://localhost:8080/test", url)
+		assert.Equal(t, "/test", path)
+	})
+}
+
+func TestDefaultExecuteToolInProcess(t *testing.T) {
+	t.Run("Should execute GET tool in-process without network call", func(t *testing.T) {
+		e := echo.New()
+		e.GET("/users/:id", func(c echo.Context) error {
+			id := c.Param("id")
+			return c.JSON(http.StatusOK, map[string]string{"id": id, "name": "alice"})
+		})
+
+		mcp := New(e)
+		err := mcp.Mount("/mcp")
+		require.NoError(t, err)
+
+		result, err := mcp.defaultExecuteTool("GET_users_id", map[string]any{"id": "42"})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+
+		resultMap, ok := result.(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "42", resultMap["id"])
+		assert.Equal(t, "alice", resultMap["name"])
+	})
+
+	t.Run("Should execute POST tool with JSON body in-process", func(t *testing.T) {
+		e := echo.New()
+		e.POST("/users", func(c echo.Context) error {
+			var body map[string]any
+			if err := c.Bind(&body); err != nil {
+				return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+			}
+			return c.JSON(http.StatusCreated, body)
+		})
+
+		mcp := New(e)
+		err := mcp.Mount("/mcp")
+		require.NoError(t, err)
+
+		result, err := mcp.defaultExecuteTool("POST_users", map[string]any{
+			"name":  "bob",
+			"email": "bob@example.com",
+		})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+
+		resultMap, ok := result.(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "bob", resultMap["name"])
+		assert.Equal(t, "bob@example.com", resultMap["email"])
+	})
+
+	t.Run("Should return error for unknown tool", func(t *testing.T) {
+		e := echo.New()
+		mcp := New(e)
+		err := mcp.Mount("/mcp")
+		require.NoError(t, err)
+
+		_, err = mcp.defaultExecuteTool("UNKNOWN_tool", map[string]any{})
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not found in operations map")
 	})
 }
 
