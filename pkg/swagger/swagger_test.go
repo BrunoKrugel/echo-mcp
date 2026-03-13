@@ -220,6 +220,57 @@ func TestConvertSwaggerSchemaToMCP(t *testing.T) {
 	})
 }
 
+func TestGetOperationSchemaFileType(t *testing.T) {
+	t.Run("Should convert swagger file type to string with binary format", func(t *testing.T) {
+		spec := &SwaggerSpec{
+			Paths: map[string]SwaggerPath{
+				"/upload": {
+					"post": SwaggerOperation{
+						Parameters: []SwaggerParameter{
+							{
+								Name:        "file",
+								In:          "formData",
+								Type:        "file",
+								Description: "File to upload",
+								Required:    true,
+							},
+							{
+								Name:        "name",
+								In:          "formData",
+								Type:        "string",
+								Description: "File name",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		schema, err := spec.GetOperationSchema("POST", "/upload")
+		assert.NoError(t, err)
+
+		properties, ok := schema["properties"].(map[string]any)
+		assert.True(t, ok)
+
+		// "file" type should be converted to "string" with format "binary"
+		fileProp, exists := properties["file"]
+		assert.True(t, exists)
+		fileSchema, ok := fileProp.(map[string]any)
+		assert.True(t, ok)
+		assert.Equal(t, "string", fileSchema["type"])
+		assert.Equal(t, "binary", fileSchema["format"])
+
+		// "string" type should remain unchanged
+		nameProp, exists := properties["name"]
+		assert.True(t, exists)
+		nameSchema, ok := nameProp.(map[string]any)
+		assert.True(t, ok)
+		assert.Equal(t, "string", nameSchema["type"])
+		_, hasFormat := nameSchema["format"]
+		assert.False(t, hasFormat)
+	})
+}
+
 func TestEchoPathToSwaggerPath(t *testing.T) {
 	t.Run("Should convert Echo path parameters to Swagger format", func(t *testing.T) {
 		testCases := []struct {
