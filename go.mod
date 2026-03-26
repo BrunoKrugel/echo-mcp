@@ -1,6 +1,6 @@
 module github.com/BrunoKrugel/echo-mcp
 
-go 1.25.1
+go 1.26
 
 require (
 	github.com/bytedance/sonic v1.15.0
