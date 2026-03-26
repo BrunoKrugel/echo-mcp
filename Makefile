@@ -61,6 +61,10 @@ format: ## Format code and organize imports
 	go fmt ./...
 	fieldalignment -fix ./...
 
+.PHONY: modernize
+modernize: ## Modernize code
+	go run golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest -fix -test ./...
+
 .PHONY: lint
 lint: ## Runs golangci-lint
 	golangci-lint run --fix
