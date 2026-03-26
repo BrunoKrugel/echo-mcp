@@ -208,7 +208,7 @@ func (spec *SwaggerSpec) convertSwaggerSchemaToMCP(schema *SwaggerSchema) any {
 	if schema.Ref != "" {
 		// Extract definition name from $ref (e.g., "#/definitions/main.User" -> "main.User")
 		refParts := strings.Split(schema.Ref, "/")
-		if len(refParts) >= 3 && refParts[0] == "#" && refParts[1] == "definitions" {
+		if len(refParts) >= 3 && refParts[0] == "#" && (refParts[1] == "definitions" || refParts[1] == "components") {
 			defName := refParts[2]
 			if refSchema, exists := spec.Definitions[defName]; exists {
 				// Recursively convert the referenced schema

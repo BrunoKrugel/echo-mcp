@@ -9,7 +9,12 @@ type AppError struct {
 }
 
 type UserRequest struct {
-	ID string `json:"id" validate:"required"`
+	Info *UserInfo `json:"info" validate:"required"`
+	ID   string    `json:"id" validate:"required"`
+}
+
+type UserInfo struct {
+	Name string `json:"name"`
 }
 
 type UserPatchRequest struct {

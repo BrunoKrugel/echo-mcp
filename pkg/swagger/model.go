@@ -61,6 +61,7 @@ type Schema struct {
 type SchemaProperty struct {
 	Type    string `yaml:"type,omitempty"`
 	Example string `yaml:"example,omitempty"`
+	Ref     string `yaml:"$ref,omitempty"`
 }
 
 type Components struct {
@@ -161,12 +162,18 @@ func convertSchema(s Schema) *SwaggerSchema {
 	if len(s.Properties) > 0 {
 		sw.Properties = map[string]*SwaggerSchema{}
 		for name, prop := range s.Properties {
-			sw.Properties[name] = &SwaggerSchema{
-				Type: prop.Type,
-			}
+			sw.Properties[name] = convertSchemaProperty(prop)
 		}
 	}
 
+	return sw
+}
+
+func convertSchemaProperty(prop SchemaProperty) *SwaggerSchema {
+	sw := &SwaggerSchema{
+		Type: prop.Type,
+		Ref:  convertRef(prop.Ref),
+	}
 	return sw
 }
 

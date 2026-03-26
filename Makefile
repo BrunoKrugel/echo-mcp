@@ -47,7 +47,7 @@ mcp: ## Run the mcp client inspector
 	npx @modelcontextprotocol/inspector http://localhost:8080/mcp
 
 .PHONY: test
-test: # Runs all the tests in the application and returns if they passed or failed, along with a coverage percentage
+test: ## Runs tests
 	go install github.com/mfridman/tparse@main | go mod tidy
 	PROFILE=local go test -parallel 10 -json -cover ./... | tparse -all -pass -trimpath=github.com/BrunoKrugel/echo-mcp/
 
