@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/BrunoKrugel/echo-mcp)](https://goreportcard.com/report/github.com/BrunoKrugel/echo-mcp)
 [![Release](https://img.shields.io/github/release/BrunoKrugel/echo-mcp.svg?style=flat-square)](https://github.com/BrunoKrugel/echo-mcp/releases)
 
-Wrap any existing Echo API into MCP tools, enabling AI agents to interact with your API through [Model Context Protocol](https://modelcontextprotocol.io/introduction).
+Wrap any existing Echo API into MCP tools and enable AI agents to interact with your API through [Model Context Protocol](https://modelcontextprotocol.io/introduction).
 
 Inspired by [gin-mcp](https://github.com/ckanthony/gin-mcp) but for the [Echo framework](https://echo.labstack.com/).
 
