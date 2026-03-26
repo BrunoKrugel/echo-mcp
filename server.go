@@ -29,6 +29,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -397,8 +398,8 @@ func (e *EchoMCP) matchesEndpoint(routePath, pattern string) bool {
 	}
 
 	// Prefix match (for patterns ending with *)
-	if strings.HasSuffix(pattern, "*") {
-		prefix := strings.TrimSuffix(pattern, "*")
+	if before, ok := strings.CutSuffix(pattern, "*"); ok {
+		prefix := before
 		return strings.HasPrefix(routePath, prefix)
 	}
 
@@ -536,7 +537,7 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 		}
 	}
 
-	req := httptest.NewRequest(operation.Method, requestPath, body)
+	req := httptest.NewRequestWithContext(context.Background(), operation.Method, requestPath, body)
 
 	// Set appropriate Content-Type
 	if contentType != "" {

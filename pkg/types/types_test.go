@@ -220,7 +220,7 @@ func TestApplySchemaTag(t *testing.T) {
 
 func TestReflectType(t *testing.T) {
 	t.Run("Should reflect string type", func(t *testing.T) {
-		schema := reflectType(reflect.TypeOf(""))
+		schema := reflectType(reflect.TypeFor[string]())
 		assert.Equal(t, "string", schema["type"])
 	})
 
@@ -252,12 +252,12 @@ func TestReflectType(t *testing.T) {
 	})
 
 	t.Run("Should reflect bool type", func(t *testing.T) {
-		schema := reflectType(reflect.TypeOf(true))
+		schema := reflectType(reflect.TypeFor[bool]())
 		assert.Equal(t, "boolean", schema["type"])
 	})
 
 	t.Run("Should reflect slice type", func(t *testing.T) {
-		schema := reflectType(reflect.TypeOf([]string{}))
+		schema := reflectType(reflect.TypeFor[[]string]())
 
 		assert.Equal(t, "array", schema["type"])
 		items, ok := schema["items"].(map[string]any)
@@ -266,7 +266,7 @@ func TestReflectType(t *testing.T) {
 	})
 
 	t.Run("Should reflect array type", func(t *testing.T) {
-		schema := reflectType(reflect.TypeOf([3]int{}))
+		schema := reflectType(reflect.TypeFor[[3]int]())
 
 		assert.Equal(t, "array", schema["type"])
 		items, ok := schema["items"].(map[string]any)
@@ -275,7 +275,7 @@ func TestReflectType(t *testing.T) {
 	})
 
 	t.Run("Should reflect map type", func(t *testing.T) {
-		schema := reflectType(reflect.TypeOf(map[string]int{}))
+		schema := reflectType(reflect.TypeFor[map[string]int]())
 
 		assert.Equal(t, "object", schema["type"])
 		additionalProps, ok := schema["additionalProperties"].(map[string]any)
@@ -288,7 +288,7 @@ func TestReflectType(t *testing.T) {
 			Name string `json:"name"`
 		}
 
-		schema := reflectType(reflect.TypeOf(TestStruct{}))
+		schema := reflectType(reflect.TypeFor[TestStruct]())
 
 		assert.Equal(t, "object", schema["type"])
 		properties, ok := schema["properties"].(map[string]any)
@@ -297,14 +297,14 @@ func TestReflectType(t *testing.T) {
 	})
 
 	t.Run("Should handle pointer types", func(t *testing.T) {
-		schema := reflectType(reflect.TypeOf((*string)(nil)))
+		schema := reflectType(reflect.TypeFor[*string]())
 
 		assert.Equal(t, "string", schema["type"])
 	})
 
 	t.Run("Should fallback to string for unknown types", func(t *testing.T) {
 		// Using channel as an uncommon type
-		schema := reflectType(reflect.TypeOf(make(chan int)))
+		schema := reflectType(reflect.TypeFor[chan int]())
 
 		assert.Equal(t, "string", schema["type"])
 	})
