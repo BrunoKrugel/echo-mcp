@@ -29,17 +29,15 @@ package server
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"maps"
-	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"slices"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/bytedance/sonic"
 	"github.com/labstack/echo/v4"
@@ -126,7 +124,7 @@ func NewWithConfig(e *echo.Echo, config *Config) *EchoMCP {
 				version = spec.Info.Version
 			}
 		}
-	} else if config.EnableSwaggerSchemas && (name == "" || description == "" || version == "") {
+	} else if config.EnableSwaggerSchemas {
 		if spec, err := swagger.GetSwaggerSpec(); err == nil && spec.Info != nil {
 			swaggerSpec = spec
 			if name == "" && spec.Info.Title != "" {
@@ -482,15 +480,19 @@ func (e *EchoMCP) handleToolCall(params any) (any, error) {
 	}, nil
 }
 
-// defaultExecuteTool executes a tool by making an HTTP request to the corresponding endpoint
+// defaultExecuteTool executes a tool by dispatching a synthetic HTTP request
+// through the Echo router in-process, without making a real network call.
+// This eliminates the need for the server to be able to reach itself over the
+// network, which is important in containerized environments where the external
+// hostname may not resolve from inside the container.
 func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]any) (any, error) {
 	operation, exists := e.operations[operationID]
 	if !exists {
 		return nil, fmt.Errorf("tool '%s' not found in operations map", operationID)
 	}
 
-	// Build the request URL
-	requestURL := e.buildRequestURL(&operation, parameters)
+	// Build the request path (no base URL needed for in-process execution)
+	requestPath := e.buildRequestPath(&operation, parameters)
 
 	// Create HTTP request with appropriate body format
 	var body io.Reader
@@ -534,10 +536,7 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 		}
 	}
 
-	req, err := http.NewRequestWithContext(context.Background(), operation.Method, requestURL, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
+	req := httptest.NewRequest(operation.Method, requestPath, body)
 
 	// Set appropriate Content-Type
 	if contentType != "" {
@@ -551,24 +550,11 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 		}
 	}
 
-	// Execute request
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer func() {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			// Log the error but don't fail the operation
-			fmt.Printf("Warning: failed to close response body: %v\n", closeErr)
-		}
-	}()
+	// Execute request in-process through the Echo router
+	rec := httptest.NewRecorder()
+	e.echo.ServeHTTP(rec, req)
 
-	// Read response
-	responseBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
+	responseBody := rec.Body.Bytes()
 
 	// Try to parse as JSON, fall back to string
 	var result any
@@ -579,13 +565,9 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 	return result, nil
 }
 
-// buildRequestURL builds the complete request URL with path and query parameters
-func (e *EchoMCP) buildRequestURL(operation *types.Operation, parameters map[string]any) string {
-	baseURL := e.baseURL
-	if baseURL == "" {
-		baseURL = "http://localhost:8080" // Default
-	}
-
+// buildRequestPath builds the request path with path and query parameters
+// for in-process execution (no base URL needed).
+func (e *EchoMCP) buildRequestPath(operation *types.Operation, parameters map[string]any) string {
 	// Replace path parameters
 	finalPath := operation.Path
 	for key, value := range parameters {
@@ -603,12 +585,11 @@ func (e *EchoMCP) buildRequestURL(operation *types.Operation, parameters map[str
 		}
 	}
 
-	requestURL := baseURL + finalPath
 	if len(queryParams) > 0 {
-		requestURL += "?" + queryParams.Encode()
+		finalPath += "?" + queryParams.Encode()
 	}
 
-	return requestURL
+	return finalPath
 }
 
 // Helper functions

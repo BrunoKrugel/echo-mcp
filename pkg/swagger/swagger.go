@@ -144,8 +144,22 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 	// Process parameters
 	for _, param := range operation.Parameters {
 		if param.In == "path" || param.In == "query" || param.In == "header" || param.In == "formData" {
+			// Normalize Swagger types to valid JSON Schema types.
+			// Swagger's "file" type has no JSON Schema equivalent;
+			// represent it as "string" with format "binary".
+			paramType := param.Type
+			paramFormat := ""
+			if paramType == "file" {
+				paramType = "string"
+				paramFormat = "binary"
+			}
+
 			propSchema := map[string]any{
-				"type": param.Type,
+				"type": paramType,
+			}
+
+			if paramFormat != "" {
+				propSchema["format"] = paramFormat
 			}
 
 			if param.Description != "" {
