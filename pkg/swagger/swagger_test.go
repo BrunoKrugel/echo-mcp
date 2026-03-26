@@ -113,6 +113,12 @@ func TestConvertSwaggerSchemaToMCP(t *testing.T) {
 				},
 				Required: []string{"name"},
 			},
+			"UserInfo": {
+				Type: "object",
+				Properties: map[string]*SwaggerSchema{
+					"name": {Type: "string"},
+				},
+			},
 		},
 	}
 
@@ -202,6 +208,32 @@ func TestConvertSwaggerSchemaToMCP(t *testing.T) {
 		userSchema := properties["user"].(map[string]any)
 		userProps := userSchema["properties"].(map[string]any)
 		assert.Contains(t, userProps, "name")
+	})
+
+	t.Run("Should handle $ref in nested properties", func(t *testing.T) {
+		schema := &SwaggerSchema{
+			Type: "object",
+			Properties: map[string]*SwaggerSchema{
+				"info": {
+					Ref: "#/definitions/UserInfo",
+				},
+			},
+		}
+
+		result := spec.convertSwaggerSchemaToMCP(schema)
+
+		resultMap, ok := result.(map[string]any)
+		assert.True(t, ok)
+
+		properties, ok := resultMap["properties"].(map[string]any)
+		assert.True(t, ok)
+
+		infoSchema := properties["info"].(map[string]any)
+		assert.Equal(t, "object", infoSchema["type"])
+
+		infoProps, ok := infoSchema["properties"].(map[string]any)
+		assert.True(t, ok)
+		assert.Contains(t, infoProps, "name")
 	})
 
 	t.Run("Should handle additional properties", func(t *testing.T) {
@@ -298,5 +330,67 @@ func TestGetSwaggerSpec(t *testing.T) {
 		_, err := GetSwaggerSpec()
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "swagger documentation not found")
+	})
+}
+
+func TestOpenAPIConversion(t *testing.T) {
+	t.Run("Should convert OpenAPI 3.0 nested $ref to proper schema", func(t *testing.T) {
+		openAPIYAML := `
+openapi: 3.0.3
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /users:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+      responses:
+        '201':
+          description: Created
+components:
+  schemas:
+    UserInfo:
+      type: object
+      properties:
+        name:
+          type: string
+    UserRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        info:
+          $ref: '#/components/schemas/UserInfo'
+`
+		spec, err := ParseOpenAPISchema(openAPIYAML)
+		assert.NoError(t, err)
+
+		schema, err := spec.GetOperationSchema("POST", "/users")
+		assert.NoError(t, err)
+
+		properties, ok := schema["properties"].(map[string]any)
+		assert.True(t, ok)
+
+		body, ok := properties["body"].(map[string]any)
+		assert.True(t, ok)
+
+		bodyProps, ok := body["properties"].(map[string]any)
+		assert.True(t, ok)
+
+		// Should have both id and info
+		assert.Contains(t, bodyProps, "id")
+		assert.Contains(t, bodyProps, "info")
+
+		// info should be resolved to its actual schema
+		info := bodyProps["info"].(map[string]any)
+		infoProps, ok := info["properties"].(map[string]any)
+		assert.True(t, ok)
+
+		// Should have name property from UserInfo
+		assert.Contains(t, infoProps, "name")
 	})
 }
