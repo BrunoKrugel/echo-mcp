@@ -4,8 +4,8 @@ info:
   title: Complex API
   version: 1.0.0
 servers:
-  - description: Development server
-    url: http://localhost:8080
+- description: Development server
+  url: http://localhost:8080
 paths:
   /ping:
     get:
@@ -15,10 +15,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PingPongResponse"
+                $ref: '#/components/schemas/PingPongResponse'
           description: OK
       tags:
-        - Health
+      - Health
   /pong:
     get:
       description: Pong endpoint for health check
@@ -27,52 +27,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PingPongResponse"
+                $ref: '#/components/schemas/PingPongResponse'
           description: OK
       tags:
-        - Health
-  /users/{id}:
-    get:
-      description: Get a user by ID
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            example: "123"
-            type: string
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UserResponse"
-          description: OK
-      tags:
-        - Users
-    patch:
-      description: Update a user
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            example: "123"
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PatchUserRequest"
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/UserResponse"
-          description: OK
-      tags:
-        - Users
+      - Health
   /v1.0/users:
     post:
       description: Creates a new user
@@ -80,35 +38,42 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserRequest"
+              $ref: '#/components/schemas/UserRequest'
       responses:
         "201":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
+                $ref: '#/components/schemas/UserResponse'
           description: Created
       tags:
-        - Users
+      - Users
 components:
   schemas:
-    PatchUserRequest:
-      properties:
-        name:
-          type: string
-        status:
-          type: string
-      type: object
     PingPongResponse:
       properties:
         message:
           example: pong
           type: string
       type: object
+    UserInfo:
+      properties:
+        name:
+          type: string
+      type: object
+    UserPatchRequest:
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+      type: object
     UserRequest:
       properties:
         id:
           type: string
+        info:
+          $ref: '#/components/schemas/UserInfo'
       type: object
     UserResponse:
       properties:
@@ -117,3 +82,4 @@ components:
         user_id:
           type: string
       type: object
+

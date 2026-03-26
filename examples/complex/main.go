@@ -51,6 +51,9 @@ func main() {
 		e.Logger.Fatal("Failed to mount MCP server:", err)
 	}
 
+	// Uncoment to generate openapi.yaml
+	// fmt.Println(string(schema))
+
 	// Run Echo server
 	e.Logger.Fatal(e.Start(":8080"))
 }
