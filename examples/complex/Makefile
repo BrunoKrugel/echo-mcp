@@ -12,5 +12,4 @@ help:
 
 .PHONY: openapi
 openapi: ## Generate OpenAPI docs
-openapi:
 	go run -race . > ./docs/api/openapi.yaml
