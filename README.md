@@ -22,6 +22,10 @@ Inspired by [gin-mcp](https://github.com/ckanthony/gin-mcp) but for the [Echo fr
 go get github.com/BrunoKrugel/echo-mcp
 ```
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/brunokrugel-echo-mcp).
+
 ## Quick Start
 
 ```go
