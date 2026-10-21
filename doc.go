@@ -10,7 +10,7 @@ This package automatically exposes your Echo routes as MCP tools that can be cal
 	import (
 		"net/http"
 		server "github.com/BrunoKrugel/echo-mcp"
-		"github.com/labstack/echo/v4"
+		"github.com/labstack/echo/v5"
 	)
 
 	func main() {
@@ -23,13 +23,13 @@ This package automatically exposes your Echo routes as MCP tools that can be cal
 
 		// Mount MCP endpoint
 		if err := mcp.Mount("/mcp"); err != nil {
-			e.Logger.Fatal(err)
+			log.Fatal(err)
 		}
 
 		e.Start(":8080")
 	}
 
-	func getUserHandler(c echo.Context) error {
+	func getUserHandler(c *echo.Context) error {
 		userID := c.Param("id")
 		return c.JSON(http.StatusOK, map[string]string{
 			"id":   userID,
@@ -37,7 +37,7 @@ This package automatically exposes your Echo routes as MCP tools that can be cal
 		})
 	}
 
-	func createUserHandler(c echo.Context) error {
+	func createUserHandler(c *echo.Context) error {
 		var user map[string]any
 		if err := c.Bind(&user); err != nil {
 			return err
@@ -106,7 +106,7 @@ When using Swagger/OpenAPI annotations, schemas are automatically generated:
 	// @Param id path string true "User ID"
 	// @Success 200 {object} User
 	// @Router /users/{id} [get]
-	func getUserHandler(c echo.Context) error {
+	func getUserHandler(c *echo.Context) error {
 		// handler implementation
 	}
 

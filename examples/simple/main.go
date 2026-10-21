@@ -1,14 +1,14 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
 	server "github.com/BrunoKrugel/echo-mcp"
 	_ "github.com/BrunoKrugel/echo-mcp/examples/simple/docs"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	echoSwagger "github.com/swaggo/echo-swagger"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 type PingPongResponse struct {
@@ -49,7 +49,7 @@ func main() {
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
-		Skipper: func(c echo.Context) bool {
+		Skipper: func(c *echo.Context) bool {
 			return strings.Contains(c.Request().URL.Path, "swagger")
 		},
 	}))
@@ -65,9 +65,6 @@ func main() {
 
 	e.POST("/v1.0/users", CreateUsersHandler)
 
-	// Register Swagger
-	e.GET("/swagger/*", echoSwagger.EchoWrapHandler())
-
 	// Create and configure the MCP server
 	mcp := server.New(e)
 
@@ -81,11 +78,11 @@ func main() {
 
 	// Mount the MCP server endpoint
 	if err := mcp.Mount("/mcp"); err != nil {
-		e.Logger.Fatal("Failed to mount MCP server:", err)
+		log.Fatal("Failed to mount MCP server:", err)
 	}
 
 	// Run Echo server
-	e.Logger.Fatal(e.Start(":8080"))
+	log.Fatal(e.Start(":8080"))
 }
 
 // PongHandler
@@ -96,7 +93,7 @@ func main() {
 //	@produces	json
 //	@Success	200	{object}	main.PingPongResponse
 //	@Router		/ping [GET]
-func PongHandler(c echo.Context) error {
+func PongHandler(c *echo.Context) error {
 	return c.JSON(http.StatusOK, &PingPongResponse{"pong"})
 }
 
@@ -111,7 +108,7 @@ func PongHandler(c echo.Context) error {
 //	@Success	200		{object}	main.UserResponse
 //	@Failure	400		{object}	main.AppError
 //	@Router		/users/{id} [GET]
-func UserIDHandler(c echo.Context) error {
+func UserIDHandler(c *echo.Context) error {
 	userID := c.Param("id")
 	return c.JSON(http.StatusOK, &UserResponse{
 		ID:     userID,
@@ -129,7 +126,7 @@ func UserIDHandler(c echo.Context) error {
 //	@Success	200		{object}	main.UserResponse
 //	@Failure	400		{object}	main.AppError
 //	@Router		/v1.0/users [POST]
-func CreateUsersHandler(c echo.Context) error {
+func CreateUsersHandler(c *echo.Context) error {
 	var user UserRequest
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(http.StatusBadRequest, &AppError{Error: "invalid request"})
@@ -152,7 +149,7 @@ func CreateUsersHandler(c echo.Context) error {
 //	@Success	200		{object}	main.UserResponse
 //	@Failure	400		{object}	main.AppError
 //	@Router		/users/{id} [PATCH]
-func UsersPatchHandler(c echo.Context) error {
+func UsersPatchHandler(c *echo.Context) error {
 	var user UserPatchRequest
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(http.StatusBadRequest, &AppError{Error: "invalid request"})
