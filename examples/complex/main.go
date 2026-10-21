@@ -8,8 +8,8 @@ import (
 
 	server "github.com/BrunoKrugel/echo-mcp"
 	"github.com/BrunoKrugel/echo-mcp/examples/complex/model"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 	"github.com/swaggest/jsonschema-go"
 	"github.com/swaggest/openapi-go"
 	"github.com/swaggest/openapi-go/openapi3"
@@ -48,21 +48,21 @@ func main() {
 
 	// Mount the MCP server endpoint
 	if err := mcp.Mount("/mcp"); err != nil {
-		e.Logger.Fatal("Failed to mount MCP server:", err)
+		log.Fatal("Failed to mount MCP server:", err)
 	}
 
 	// Uncoment to generate openapi.yaml
 	// fmt.Println(string(schema))
 
 	// Run Echo server
-	e.Logger.Fatal(e.Start(":8080"))
+	log.Fatal(e.Start(":8080"))
 }
 
-func PongHandler(c echo.Context) error {
+func PongHandler(c *echo.Context) error {
 	return c.JSON(http.StatusOK, &model.PingPongResponse{Message: "pong"})
 }
 
-func UserIDHandler(c echo.Context) error {
+func UserIDHandler(c *echo.Context) error {
 	userID := c.Param("id")
 	return c.JSON(http.StatusOK, &model.UserResponse{
 		ID:     userID,
@@ -70,7 +70,7 @@ func UserIDHandler(c echo.Context) error {
 	})
 }
 
-func CreateUsersHandler(c echo.Context) error {
+func CreateUsersHandler(c *echo.Context) error {
 	var user model.UserRequest
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(http.StatusBadRequest, &model.AppError{Error: "invalid request"})
@@ -82,7 +82,7 @@ func CreateUsersHandler(c echo.Context) error {
 	})
 }
 
-func UsersPatchHandler(c echo.Context) error {
+func UsersPatchHandler(c *echo.Context) error {
 	var user model.UserPatchRequest
 	if err := c.Bind(&user); err != nil {
 		return c.JSON(http.StatusBadRequest, &model.AppError{Error: "invalid request"})
