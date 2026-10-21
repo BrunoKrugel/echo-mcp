@@ -15,6 +15,7 @@ Inspired by [gin-mcp](https://github.com/ckanthony/gin-mcp) but for the [Echo fr
 - **Multiple Schema Sources**: Support for Swaggo, raw OpenAPI YAML/JSON, and manual schemas
 - **Filtering**: Include/exclude endpoints with wildcard patterns
 - **MCP Compatible**: Works with any agent that supports MCP.
+- **Echo v5**: Integrates with labstack Echo v5.
 
 ## Installation
 
@@ -30,14 +31,14 @@ package main
 import (
     "net/http"
     server "github.com/BrunoKrugel/echo-mcp"
-    "github.com/labstack/echo/v4"
+    "github.com/labstack/echo/v5"
 )
 
 func main() {
     e := echo.New()
 
     // Existing API routes
-    e.GET("/ping", func(c echo.Context) error {
+    e.GET("/ping", func(c *echo.Context) error {
         return c.JSON(http.StatusOK, map[string]string{"message": "pong"})
     })
 
@@ -65,7 +66,7 @@ If you already use Swaggo for Swagger documentation, enable automatic schema gen
 // @Param id path int true "User ID" minimum(1)
 // @Success 200 {object} User
 // @Router /users/{id} [get]
-func GetUser(c echo.Context) error {
+func GetUser(c *echo.Context) error {
     // Your handler code
 }
 
