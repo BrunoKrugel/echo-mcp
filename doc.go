@@ -8,6 +8,7 @@ This package automatically exposes your Echo routes as MCP tools that can be cal
 	package main
 
 	import (
+		"log"
 		"net/http"
 		server "github.com/BrunoKrugel/echo-mcp"
 		"github.com/labstack/echo/v5"

@@ -38,7 +38,7 @@ func main() {
     e := echo.New()
 
     // Existing API routes
-    e.GET("/ping", func(c echo.Context) error {
+    e.GET("/ping", func(c *echo.Context) error {
         return c.JSON(http.StatusOK, map[string]string{"message": "pong"})
     })
 
