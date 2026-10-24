@@ -14,6 +14,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// JSON Schema and Swagger parameter literals used across this package.
+const (
+	schemaKeyType    = "type"
+	schemaTypeObject = "object"
+	paramInBody      = "body"
+)
+
 type SwaggerSpec struct {
 	Paths       map[string]SwaggerPath    `json:"paths"`
 	Definitions map[string]*SwaggerSchema `json:"definitions"`
@@ -131,8 +138,8 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 
 	// Build MCP schema from swagger operation
 	schema := map[string]any{
-		"type":       "object",
-		"properties": map[string]any{},
+		schemaKeyType: schemaTypeObject,
+		"properties":  map[string]any{},
 	}
 
 	properties, ok := schema["properties"].(map[string]any)
@@ -155,7 +162,7 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 			}
 
 			propSchema := map[string]any{
-				"type": paramType,
+				schemaKeyType: paramType,
 			}
 
 			if paramFormat != "" {
@@ -175,7 +182,7 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 			if param.Required {
 				required = append(required, param.Name)
 			}
-		} else if param.In == "body" && param.Schema != nil {
+		} else if param.In == paramInBody && param.Schema != nil {
 			// Skip body parameters for GET requests (they're likely response schemas mistakenly marked as body)
 			if strings.EqualFold(method, "GET") {
 				continue
@@ -183,10 +190,10 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 
 			// Handle request body as a nested object under "body" property
 			bodySchema := spec.convertSwaggerSchemaToMCP(param.Schema)
-			properties["body"] = bodySchema
+			properties[paramInBody] = bodySchema
 
 			if param.Required {
-				required = append(required, "body")
+				required = append(required, paramInBody)
 			}
 		}
 	}
@@ -201,7 +208,7 @@ func (spec *SwaggerSpec) GetOperationSchema(method, path string) (map[string]any
 // convertSwaggerSchemaToMCP converts swagger schema to MCP-compatible schema
 func (spec *SwaggerSpec) convertSwaggerSchemaToMCP(schema *SwaggerSchema) any {
 	if schema == nil {
-		return map[string]any{"type": "object"}
+		return map[string]any{schemaKeyType: schemaTypeObject}
 	}
 
 	// Handle $ref resolution
@@ -216,7 +223,7 @@ func (spec *SwaggerSpec) convertSwaggerSchemaToMCP(schema *SwaggerSchema) any {
 			}
 		}
 		// If $ref cannot be resolved, return a basic object
-		return map[string]any{"type": "object"}
+		return map[string]any{schemaKeyType: schemaTypeObject}
 	}
 
 	result := map[string]any{}

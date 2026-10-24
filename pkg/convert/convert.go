@@ -15,6 +15,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// schemaKeyType is the JSON Schema "type" keyword.
+const schemaKeyType = "type"
+
 // ConvertRoutesToTools converts Echo routes into a list of MCP Tools and an operation map.
 func ConvertRoutesToTools(routes []*echo.Route, registeredSchemas map[string]types.RegisteredSchemaInfo, swaggerSpec *swagger.SwaggerSpec) ([]types.Tool, map[string]types.Operation) {
 	tools := make([]types.Tool, 0)
@@ -97,8 +100,8 @@ func generateTool(route *echo.Route, operationID string, registeredSchemas map[s
 // generateInputSchema creates the input schema for a tool based on the route
 func generateInputSchema(route *echo.Route, registeredSchema types.RegisteredSchemaInfo, hasRegisteredSchema bool, swaggerSpec *swagger.SwaggerSpec) map[string]any {
 	schema := map[string]any{
-		"type":       "object",
-		"properties": map[string]any{},
+		schemaKeyType: "object",
+		"properties":  map[string]any{},
 	}
 
 	properties, ok := schema["properties"].(map[string]any)
@@ -111,7 +114,7 @@ func generateInputSchema(route *echo.Route, registeredSchema types.RegisteredSch
 	pathParams := extractPathParameters(route.Path)
 	for _, param := range pathParams {
 		properties[param] = map[string]any{
-			"type":        "string",
+			schemaKeyType: "string",
 			"description": fmt.Sprintf("Path parameter: %s", param),
 		}
 		required = append(required, param)
@@ -158,7 +161,7 @@ func generateInputSchema(route *echo.Route, registeredSchema types.RegisteredSch
 			} else {
 				// Generic body parameter
 				properties["body"] = map[string]any{
-					"type":        "object",
+					schemaKeyType: "object",
 					"description": "Request body",
 				}
 			}
