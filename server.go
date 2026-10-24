@@ -59,7 +59,7 @@ type EchoMCP struct {
 	operations        map[string]types.Operation
 	config            *Config
 	registeredSchemas map[string]types.RegisteredSchemaInfo
-	executeToolFunc   func(operationID string, parameters map[string]any) (any, error)
+	executeToolFunc   func(ctx context.Context, operationID string, parameters map[string]any) (any, error)
 	name              string
 	description       string
 	baseURL           string
@@ -72,15 +72,19 @@ type EchoMCP struct {
 
 // Config holds configuration options for the EchoMCP server.
 type Config struct {
-	Name                       string
-	Version                    string
-	Description                string
-	BaseURL                    string
-	OpenAPISchema              string
-	IncludeOperations          []string
-	ExcludeOperations          []string
-	IncludeTags                []string
-	ExcludeTags                []string
+	Name              string
+	Version           string
+	Description       string
+	BaseURL           string
+	OpenAPISchema     string
+	IncludeOperations []string
+	ExcludeOperations []string
+	IncludeTags       []string
+	ExcludeTags       []string
+	// ForwardHeaders lists headers copied from the incoming MCP HTTP request
+	// onto each in-process tool request, for example "Authorization". They are
+	// applied after tool arguments, so a tool argument cannot override them.
+	ForwardHeaders             []string
 	EnableSwaggerSchemas       bool
 	DescribeAllResponses       bool
 	DescribeFullResponseSchema bool
@@ -304,7 +308,8 @@ func (e *EchoMCP) ExcludeEndpoints(endpoints []string) {
 // MCP clients can connect to this endpoint to discover and execute tools.
 func (e *EchoMCP) Mount(path string) error {
 	// Create HTTP transport first
-	e.transport = transport.NewHTTPTransport(path)
+	httpTransport := transport.NewHTTPTransport(path)
+	e.transport = httpTransport
 
 	if err := e.setupServer(); err != nil {
 		return fmt.Errorf("failed to setup server: %w", err)
@@ -313,7 +318,7 @@ func (e *EchoMCP) Mount(path string) error {
 	// Register handlers
 	e.transport.RegisterHandler("initialize", e.handleInitialize)
 	e.transport.RegisterHandler("tools/list", e.handleToolsList)
-	e.transport.RegisterHandler("tools/call", e.handleToolCall)
+	httpTransport.RegisterContextHandler("tools/call", e.handleToolCallContext)
 
 	// Handle HTTP messages (Streamable HTTP transport)
 	e.echo.POST(path, e.transport.HandleMessage)
@@ -451,6 +456,12 @@ func (e *EchoMCP) handleToolsList(params any) (any, error) {
 
 // handleToolCall handles tools/call requests
 func (e *EchoMCP) handleToolCall(params any) (any, error) {
+	return e.handleToolCallContext(context.Background(), params)
+}
+
+// handleToolCallContext runs a tool with the incoming request's context so
+// configured headers can be forwarded and cancellation propagates.
+func (e *EchoMCP) handleToolCallContext(ctx context.Context, params any) (any, error) {
 	paramMap, ok := params.(map[string]any)
 	if !ok {
 		return nil, errors.New("invalid parameters")
@@ -466,7 +477,7 @@ func (e *EchoMCP) handleToolCall(params any) (any, error) {
 		arguments = make(map[string]any)
 	}
 
-	result, err := e.executeToolFunc(toolName, arguments)
+	result, err := e.executeToolFunc(ctx, toolName, arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -486,7 +497,7 @@ func (e *EchoMCP) handleToolCall(params any) (any, error) {
 // This eliminates the need for the server to be able to reach itself over the
 // network, which is important in containerized environments where the external
 // hostname may not resolve from inside the container.
-func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]any) (any, error) {
+func (e *EchoMCP) defaultExecuteTool(ctx context.Context, operationID string, parameters map[string]any) (any, error) {
 	operation, exists := e.operations[operationID]
 	if !exists {
 		return nil, fmt.Errorf("tool '%s' not found in operations map", operationID)
@@ -537,7 +548,7 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 		}
 	}
 
-	req := httptest.NewRequestWithContext(context.Background(), operation.Method, requestPath, body)
+	req := httptest.NewRequestWithContext(ctx, operation.Method, requestPath, body)
 
 	// Set appropriate Content-Type
 	if contentType != "" {
@@ -548,6 +559,17 @@ func (e *EchoMCP) defaultExecuteTool(operationID string, parameters map[string]a
 	for key, value := range parameters {
 		if isHeaderParameter(&operation, key) {
 			req.Header.Set(key, fmt.Sprintf("%v", value))
+		}
+	}
+
+	// Forward configured headers from the incoming MCP request last, so tool
+	// arguments cannot override them.
+	if incoming, ok := transport.RequestFromContext(ctx); ok && e.config != nil {
+		for _, name := range e.config.ForwardHeaders {
+			req.Header.Del(name)
+			for _, value := range incoming.Header.Values(name) {
+				req.Header.Add(name, value)
+			}
 		}
 	}
 

@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -13,10 +14,11 @@ import (
 )
 
 type HTTPTransport struct {
-	handlers  map[string]MessageHandler
-	sessions  map[string]*Session
-	mountPath string
-	mu        sync.RWMutex
+	handlers    map[string]MessageHandler
+	ctxHandlers map[string]ContextMessageHandler
+	sessions    map[string]*Session
+	mountPath   string
+	mu          sync.RWMutex
 }
 
 type Session struct {
@@ -27,9 +29,10 @@ type Session struct {
 // NewHTTPTransport creates a new HTTP transport
 func NewHTTPTransport(mountPath string) *HTTPTransport {
 	return &HTTPTransport{
-		mountPath: mountPath,
-		handlers:  make(map[string]MessageHandler),
-		sessions:  make(map[string]*Session),
+		mountPath:   mountPath,
+		handlers:    make(map[string]MessageHandler),
+		ctxHandlers: make(map[string]ContextMessageHandler),
+		sessions:    make(map[string]*Session),
 	}
 }
 
@@ -38,6 +41,14 @@ func (h *HTTPTransport) RegisterHandler(method string, handler MessageHandler) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.handlers[method] = handler
+}
+
+// RegisterContextHandler registers a handler that receives the incoming
+// request's context. It takes precedence over a MessageHandler for the same method.
+func (h *HTTPTransport) RegisterContextHandler(method string, handler ContextMessageHandler) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.ctxHandlers[method] = handler
 }
 
 // MountPath returns the mount path
@@ -67,14 +78,18 @@ func (h *HTTPTransport) HandleMessage(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "Session not found")
 	}
 
-	response := h.processMessage(&msg)
+	response := h.processMessage(requestContext(c), &msg)
 
 	return c.JSON(http.StatusOK, response)
 }
 
+func requestContext(c echo.Context) context.Context {
+	return ContextWithRequest(c.Request().Context(), c.Request())
+}
+
 // handleInitialize specifically handles initialize requests
 func (h *HTTPTransport) handleInitialize(c echo.Context, msg *types.MCPMessage) error {
-	response := h.processMessage(msg)
+	response := h.processMessage(requestContext(c), msg)
 
 	sessionID := h.createSession()
 	c.Response().Header().Set("Mcp-Session-Id", sessionID)
@@ -83,10 +98,15 @@ func (h *HTTPTransport) handleInitialize(c echo.Context, msg *types.MCPMessage) 
 }
 
 // processMessage handles an incoming MCP message and returns a response
-func (h *HTTPTransport) processMessage(msg *types.MCPMessage) *types.MCPMessage {
+func (h *HTTPTransport) processMessage(ctx context.Context, msg *types.MCPMessage) *types.MCPMessage {
 	h.mu.RLock()
+	ctxHandler, hasCtxHandler := h.ctxHandlers[msg.Method]
 	handler, exists := h.handlers[msg.Method]
 	h.mu.RUnlock()
+	if hasCtxHandler {
+		exists = true
+		handler = func(params any) (any, error) { return ctxHandler(ctx, params) }
+	}
 
 	response := &types.MCPMessage{
 		Jsonrpc: "2.0",

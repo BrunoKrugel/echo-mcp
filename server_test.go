@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"testing"
@@ -311,7 +312,7 @@ func TestHandleToolCall(t *testing.T) {
 		mcp := NewWithConfig(e, &Config{BaseURL: "http://localhost:8080"})
 
 		// Mock execute function for testing
-		mcp.executeToolFunc = func(operationID string, parameters map[string]any) (any, error) {
+		mcp.executeToolFunc = func(_ context.Context, operationID string, parameters map[string]any) (any, error) {
 			return map[string]string{"result": "success"}, nil
 		}
 
@@ -418,7 +419,7 @@ func TestDefaultExecuteToolInProcess(t *testing.T) {
 		err := mcp.Mount("/mcp")
 		require.NoError(t, err)
 
-		result, err := mcp.defaultExecuteTool("GET_users_id", map[string]any{"id": "42"})
+		result, err := mcp.defaultExecuteTool(context.Background(), "GET_users_id", map[string]any{"id": "42"})
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -443,7 +444,7 @@ func TestDefaultExecuteToolInProcess(t *testing.T) {
 		err := mcp.Mount("/mcp")
 		require.NoError(t, err)
 
-		result, err := mcp.defaultExecuteTool("POST_users", map[string]any{
+		result, err := mcp.defaultExecuteTool(context.Background(), "POST_users", map[string]any{
 			"name":  "bob",
 			"email": "bob@example.com",
 		})
@@ -463,7 +464,7 @@ func TestDefaultExecuteToolInProcess(t *testing.T) {
 		err := mcp.Mount("/mcp")
 		require.NoError(t, err)
 
-		_, err = mcp.defaultExecuteTool("UNKNOWN_tool", map[string]any{})
+		_, err = mcp.defaultExecuteTool(context.Background(), "UNKNOWN_tool", map[string]any{})
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "not found in operations map")
