@@ -3,6 +3,12 @@ name: Create patch release on merged PR
 on:
   pull_request:
     types: [closed]
+  workflow_dispatch:
+    inputs:
+      reuse_existing_tags:
+        description: "Skip tag creation and release the latest existing tags (used to retry a failed release step)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -10,7 +16,7 @@ permissions:
 
 jobs:
   create-release:
-    if: ${{ github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main' }}
+    if: ${{ (github.event_name == 'workflow_dispatch') || (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -44,6 +50,10 @@ jobs:
         run: |
           set -e
           latest=${{ steps.root_tag.outputs.latest }}
+          if [ "${{ inputs.reuse_existing_tags || 'false' }}" = "true" ]; then
+            echo "new_tag=$latest" >> $GITHUB_OUTPUT
+            exit 0
+          fi
           ver=${latest#v}
           IFS='.' read -r major minor patch <<< "$ver"
           patch=$((patch + 1))
@@ -66,6 +76,10 @@ jobs:
             echo "new_tag=v5.0.0" >> $GITHUB_OUTPUT
             exit 0
           fi
+          if [ "${{ inputs.reuse_existing_tags || 'false' }}" = "true" ]; then
+            echo "new_tag=$latest" >> $GITHUB_OUTPUT
+            exit 0
+          fi
           ver=${latest#v}
           IFS='.' read -r major minor patch <<< "$ver"
           patch=$((patch + 1))
@@ -77,6 +91,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
+          if [ "${{ inputs.reuse_existing_tags || 'false' }}" = "true" ]; then
+            echo "Skipping tag creation: reusing existing tags"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           root_new=${{ steps.bump_root.outputs.new_tag }}
