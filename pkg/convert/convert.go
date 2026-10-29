@@ -12,11 +12,11 @@ import (
 
 	"github.com/BrunoKrugel/echo-mcp/pkg/swagger"
 	"github.com/BrunoKrugel/echo-mcp/pkg/types"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 )
 
 // ConvertRoutesToTools converts Echo routes into a list of MCP Tools and an operation map.
-func ConvertRoutesToTools(routes []*echo.Route, registeredSchemas map[string]types.RegisteredSchemaInfo, swaggerSpec *swagger.SwaggerSpec) ([]types.Tool, map[string]types.Operation) {
+func ConvertRoutesToTools(routes echo.Routes, registeredSchemas map[string]types.RegisteredSchemaInfo, swaggerSpec *swagger.SwaggerSpec) ([]types.Tool, map[string]types.Operation) {
 	tools := make([]types.Tool, 0)
 	operations := make(map[string]types.Operation)
 
@@ -70,7 +70,7 @@ func generateOperationID(method, path string) string {
 }
 
 // generateTool converts an Echo route to an MCP Tool
-func generateTool(route *echo.Route, operationID string, registeredSchemas map[string]types.RegisteredSchemaInfo, swaggerSpec *swagger.SwaggerSpec) types.Tool {
+func generateTool(route echo.RouteInfo, operationID string, registeredSchemas map[string]types.RegisteredSchemaInfo, swaggerSpec *swagger.SwaggerSpec) types.Tool {
 	schemaKey := fmt.Sprintf("%s %s", route.Method, route.Path)
 	registeredSchema, hasRegisteredSchema := registeredSchemas[schemaKey]
 
@@ -95,7 +95,7 @@ func generateTool(route *echo.Route, operationID string, registeredSchemas map[s
 }
 
 // generateInputSchema creates the input schema for a tool based on the route
-func generateInputSchema(route *echo.Route, registeredSchema types.RegisteredSchemaInfo, hasRegisteredSchema bool, swaggerSpec *swagger.SwaggerSpec) map[string]any {
+func generateInputSchema(route echo.RouteInfo, registeredSchema types.RegisteredSchemaInfo, hasRegisteredSchema bool, swaggerSpec *swagger.SwaggerSpec) map[string]any {
 	schema := map[string]any{
 		"type":       "object",
 		"properties": map[string]any{},
@@ -194,7 +194,7 @@ func extractPathParameters(path string) []string {
 }
 
 // getHandlerDescription attempts to extract description from handler function comments
-func getHandlerDescription(route *echo.Route) string {
+func getHandlerDescription(route echo.RouteInfo) string {
 	if route.Name != "" {
 		return fmt.Sprintf("Handler: %s", route.Name)
 	}
@@ -208,7 +208,7 @@ func echoPathToSwaggerPath(echoPath string) string {
 }
 
 // getSwaggerDescription gets the description from swagger specification
-func getSwaggerDescription(route *echo.Route, swaggerSpec *swagger.SwaggerSpec) string {
+func getSwaggerDescription(route echo.RouteInfo, swaggerSpec *swagger.SwaggerSpec) string {
 	if swaggerSpec == nil {
 		return ""
 	}
@@ -231,7 +231,7 @@ func getSwaggerDescription(route *echo.Route, swaggerSpec *swagger.SwaggerSpec) 
 }
 
 // extractHeaderParameters extracts header parameter names from swagger specification
-func extractHeaderParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSpec) []string {
+func extractHeaderParameters(route echo.RouteInfo, swaggerSpec *swagger.SwaggerSpec) []string {
 	var headerParams []string
 
 	if swaggerSpec == nil {
@@ -255,7 +255,7 @@ func extractHeaderParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSpec
 }
 
 // extractQueryParameters extracts query parameter names from swagger specification
-func extractQueryParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSpec) []string {
+func extractQueryParameters(route echo.RouteInfo, swaggerSpec *swagger.SwaggerSpec) []string {
 	var queryParams []string
 
 	if swaggerSpec == nil {
@@ -279,7 +279,7 @@ func extractQueryParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSpec)
 }
 
 // extractFormDataParameters extracts form data parameter names from swagger specification
-func extractFormDataParameters(route *echo.Route, swaggerSpec *swagger.SwaggerSpec) []string {
+func extractFormDataParameters(route echo.RouteInfo, swaggerSpec *swagger.SwaggerSpec) []string {
 	var formDataParams []string
 
 	if swaggerSpec == nil {
