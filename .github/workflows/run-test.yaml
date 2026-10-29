@@ -35,10 +35,19 @@ jobs:
       - name: Build
         run: go build ./...
 
-      - name: Run tests
+      - name: Build Echo v5 module
+        run: cd v5 && go build ./...
+
+      - name: Run tests (Echo v4 module)
         run: |
           set -euo pipefail
           go test -json -v ./... 2>&1 | tee /tmp/gotest.log | gotestfmt
+
+      - name: Run tests (Echo v5 module)
+        run: |
+          set -euo pipefail
+          cd v5
+          go test -json -v ./... 2>&1 | tee /tmp/gotest-v5.log | gotestfmt
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5

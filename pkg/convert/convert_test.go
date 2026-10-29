@@ -3,7 +3,7 @@ package convert
 import (
 	"testing"
 
-	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/BrunoKrugel/echo-mcp/pkg/swagger"
@@ -12,7 +12,7 @@ import (
 
 func TestConvertRoutesToTools(t *testing.T) {
 	t.Run("Should convert simple routes to tools", func(t *testing.T) {
-		routes := echo.Routes{
+		routes := []*echo.Route{
 			{Path: "/users", Method: "GET"},
 			{Path: "/users/:id", Method: "GET"},
 			{Path: "/users", Method: "POST"},
@@ -36,7 +36,7 @@ func TestConvertRoutesToTools(t *testing.T) {
 	})
 
 	t.Run("Should handle empty routes", func(t *testing.T) {
-		routes := echo.Routes{}
+		routes := []*echo.Route{}
 
 		tools, operations := ConvertRoutesToTools(routes, nil, nil)
 
@@ -45,7 +45,7 @@ func TestConvertRoutesToTools(t *testing.T) {
 	})
 
 	t.Run("Should use registered schemas when available", func(t *testing.T) {
-		routes := echo.Routes{
+		routes := []*echo.Route{
 			{Path: "/users", Method: "GET"},
 		}
 
@@ -81,7 +81,7 @@ func TestConvertRoutesToTools(t *testing.T) {
 	})
 
 	t.Run("Should enable swagger schemas when requested", func(t *testing.T) {
-		routes := echo.Routes{
+		routes := []*echo.Route{
 			{Path: "/test", Method: "GET"},
 		}
 
@@ -96,7 +96,7 @@ func TestConvertRoutesToTools(t *testing.T) {
 
 func TestGenerateTool(t *testing.T) {
 	t.Run("Should generate tool with basic info", func(t *testing.T) {
-		route := echo.RouteInfo{
+		route := &echo.Route{
 			Path:   "/users/:id",
 			Method: "GET",
 		}
@@ -110,7 +110,7 @@ func TestGenerateTool(t *testing.T) {
 	})
 
 	t.Run("Should use swagger description when available", func(t *testing.T) {
-		route := echo.RouteInfo{
+		route := &echo.Route{
 			Path:   "/users",
 			Method: "GET",
 		}
@@ -135,7 +135,7 @@ func TestGenerateTool(t *testing.T) {
 
 func TestGenerateInputSchema(t *testing.T) {
 	t.Run("Should generate schema with path parameters", func(t *testing.T) {
-		route := echo.RouteInfo{
+		route := &echo.Route{
 			Path:   "/users/:id/orders/:orderID",
 			Method: "GET",
 		}
@@ -156,7 +156,7 @@ func TestGenerateInputSchema(t *testing.T) {
 	})
 
 	t.Run("Should add body parameter for POST requests", func(t *testing.T) {
-		route := echo.RouteInfo{
+		route := &echo.Route{
 			Path:   "/users",
 			Method: "POST",
 		}
@@ -172,7 +172,7 @@ func TestGenerateInputSchema(t *testing.T) {
 	})
 
 	t.Run("Should not add body parameter for GET requests", func(t *testing.T) {
-		route := echo.RouteInfo{
+		route := &echo.Route{
 			Path:   "/users",
 			Method: "GET",
 		}
@@ -185,7 +185,7 @@ func TestGenerateInputSchema(t *testing.T) {
 	})
 
 	t.Run("Should use registered body schema", func(t *testing.T) {
-		route := echo.RouteInfo{
+		route := &echo.Route{
 			Path:   "/users",
 			Method: "POST",
 		}
@@ -213,7 +213,7 @@ func TestGenerateInputSchema(t *testing.T) {
 	})
 
 	t.Run("Should use registered query schema", func(t *testing.T) {
-		route := echo.RouteInfo{
+		route := &echo.Route{
 			Path:   "/users",
 			Method: "GET",
 		}
@@ -341,7 +341,7 @@ func TestEchoPathToSwaggerPath(t *testing.T) {
 
 func TestGetSwaggerDescription(t *testing.T) {
 	t.Run("Should return empty string when swagger is nil", func(t *testing.T) {
-		route := echo.RouteInfo{Path: "/test", Method: "GET"}
+		route := &echo.Route{Path: "/test", Method: "GET"}
 
 		description := getSwaggerDescription(route, nil)
 
@@ -349,7 +349,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 	})
 
 	t.Run("Should return summary from swagger spec", func(t *testing.T) {
-		route := echo.RouteInfo{Path: "/users", Method: "GET"}
+		route := &echo.Route{Path: "/users", Method: "GET"}
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
@@ -367,7 +367,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 	})
 
 	t.Run("Should return description when summary is empty", func(t *testing.T) {
-		route := echo.RouteInfo{Path: "/users", Method: "GET"}
+		route := &echo.Route{Path: "/users", Method: "GET"}
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
@@ -385,7 +385,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 	})
 
 	t.Run("Should prioritize summary over description", func(t *testing.T) {
-		route := echo.RouteInfo{Path: "/users", Method: "GET"}
+		route := &echo.Route{Path: "/users", Method: "GET"}
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
@@ -404,7 +404,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 	})
 
 	t.Run("Should return empty for non-existent path", func(t *testing.T) {
-		route := echo.RouteInfo{Path: "/nonexistent", Method: "GET"}
+		route := &echo.Route{Path: "/nonexistent", Method: "GET"}
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
@@ -424,7 +424,7 @@ func TestGetSwaggerDescription(t *testing.T) {
 
 func TestExtractHeaderParameters(t *testing.T) {
 	t.Run("Should extract header parameters from swagger spec", func(t *testing.T) {
-		route := echo.RouteInfo{Path: "/users", Method: "GET"}
+		route := &echo.Route{Path: "/users", Method: "GET"}
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
@@ -449,7 +449,7 @@ func TestExtractHeaderParameters(t *testing.T) {
 	})
 
 	t.Run("Should return empty slice when no headers", func(t *testing.T) {
-		route := echo.RouteInfo{Path: "/users", Method: "GET"}
+		route := &echo.Route{Path: "/users", Method: "GET"}
 
 		headers := extractHeaderParameters(route, nil)
 
@@ -459,7 +459,7 @@ func TestExtractHeaderParameters(t *testing.T) {
 
 func TestExtractQueryParameters(t *testing.T) {
 	t.Run("Should extract query parameters from swagger spec", func(t *testing.T) {
-		route := echo.RouteInfo{Path: "/users", Method: "GET"}
+		route := &echo.Route{Path: "/users", Method: "GET"}
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
@@ -484,7 +484,7 @@ func TestExtractQueryParameters(t *testing.T) {
 	})
 
 	t.Run("Should return empty slice when no query params", func(t *testing.T) {
-		route := echo.RouteInfo{Path: "/users", Method: "GET"}
+		route := &echo.Route{Path: "/users", Method: "GET"}
 
 		queryParams := extractQueryParameters(route, nil)
 
@@ -494,7 +494,7 @@ func TestExtractQueryParameters(t *testing.T) {
 
 func TestExtractFormDataParameters(t *testing.T) {
 	t.Run("Should extract form data parameters from swagger spec", func(t *testing.T) {
-		route := echo.RouteInfo{Path: "/upload", Method: "POST"}
+		route := &echo.Route{Path: "/upload", Method: "POST"}
 
 		swaggerSpec := &swagger.SwaggerSpec{
 			Paths: map[string]swagger.SwaggerPath{
@@ -519,7 +519,7 @@ func TestExtractFormDataParameters(t *testing.T) {
 	})
 
 	t.Run("Should return empty slice when no form data params", func(t *testing.T) {
-		route := echo.RouteInfo{Path: "/users", Method: "GET"}
+		route := &echo.Route{Path: "/users", Method: "GET"}
 
 		formDataParams := extractFormDataParameters(route, nil)
 

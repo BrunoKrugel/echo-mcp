@@ -41,7 +41,7 @@ import (
 	"sync"
 
 	"github.com/bytedance/sonic"
-	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v4"
 
 	"github.com/BrunoKrugel/echo-mcp/pkg/convert"
 	"github.com/BrunoKrugel/echo-mcp/pkg/swagger"
@@ -328,7 +328,7 @@ func (e *EchoMCP) setupServer() error {
 	e.schemasMu.RUnlock()
 
 	// Get routes from Echo
-	routes := e.echo.Router().Routes()
+	routes := e.echo.Routes()
 
 	// Filter routes
 	filteredRoutes := e.filterRoutes(routes)
@@ -343,8 +343,8 @@ func (e *EchoMCP) setupServer() error {
 }
 
 // filterRoutes filters routes based on configuration
-func (e *EchoMCP) filterRoutes(routes echo.Routes) echo.Routes {
-	var filtered echo.Routes
+func (e *EchoMCP) filterRoutes(routes []*echo.Route) []*echo.Route {
+	var filtered []*echo.Route
 
 	for _, route := range routes {
 		// Skip MCP endpoints (only if transport is initialized)
@@ -364,7 +364,7 @@ func (e *EchoMCP) filterRoutes(routes echo.Routes) echo.Routes {
 }
 
 // shouldIncludeRoute determines if a route should be included based on include/exclude filters
-func (e *EchoMCP) shouldIncludeRoute(route echo.RouteInfo) bool {
+func (e *EchoMCP) shouldIncludeRoute(route *echo.Route) bool {
 	routePath := route.Path
 
 	// If includeEndpoints is set, only include routes that match

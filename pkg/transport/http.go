@@ -8,7 +8,7 @@ import (
 
 	"github.com/BrunoKrugel/echo-mcp/pkg/types"
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,12 +46,12 @@ func (h *HTTPTransport) MountPath() string {
 }
 
 // HandleConnection handles incoming MCP connections (not used in HTTP transport)
-func (h *HTTPTransport) HandleConnection(c *echo.Context) error {
+func (h *HTTPTransport) HandleConnection(c echo.Context) error {
 	return echo.NewHTTPError(http.StatusMethodNotAllowed, "GET method not supported for HTTP transport")
 }
 
 // HandleMessage processes incoming MCP messages via POST
-func (h *HTTPTransport) HandleMessage(c *echo.Context) error {
+func (h *HTTPTransport) HandleMessage(c echo.Context) error {
 	sessionID := c.Request().Header.Get("Mcp-Session-Id")
 
 	var msg types.MCPMessage
@@ -73,7 +73,7 @@ func (h *HTTPTransport) HandleMessage(c *echo.Context) error {
 }
 
 // handleInitialize specifically handles initialize requests
-func (h *HTTPTransport) handleInitialize(c *echo.Context, msg *types.MCPMessage) error {
+func (h *HTTPTransport) handleInitialize(c echo.Context, msg *types.MCPMessage) error {
 	response := h.processMessage(msg)
 
 	sessionID := h.createSession()

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/bytedance/sonic"
-	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -119,7 +119,7 @@ func TestHTTPTransport_HandleConnection(t *testing.T) {
 		ok := errors.As(err, &httpErr)
 		assert.True(t, ok)
 		assert.Equal(t, http.StatusMethodNotAllowed, httpErr.Code)
-		assert.Contains(t, httpErr.Message, "GET method not supported")
+		assert.Contains(t, httpErr.Message.(string), "GET method not supported")
 	})
 }
 

@@ -1,0 +1,85 @@
+openapi: 3.0.3
+info:
+  description: API for managing complex API
+  title: Complex API
+  version: 1.0.0
+servers:
+- description: Development server
+  url: http://localhost:8080
+paths:
+  /ping:
+    get:
+      description: Ping endpoint for health check
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingPongResponse'
+          description: OK
+      tags:
+      - Health
+  /pong:
+    get:
+      description: Pong endpoint for health check
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingPongResponse'
+          description: OK
+      tags:
+      - Health
+  /v1.0/users:
+    post:
+      description: Creates a new user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRequest'
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+          description: Created
+      tags:
+      - Users
+components:
+  schemas:
+    PingPongResponse:
+      properties:
+        message:
+          example: pong
+          type: string
+      type: object
+    UserInfo:
+      properties:
+        name:
+          type: string
+      type: object
+    UserPatchRequest:
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+      type: object
+    UserRequest:
+      properties:
+        id:
+          type: string
+        info:
+          $ref: '#/components/schemas/UserInfo'
+      type: object
+    UserResponse:
+      properties:
+        status:
+          type: string
+        user_id:
+          type: string
+      type: object
+

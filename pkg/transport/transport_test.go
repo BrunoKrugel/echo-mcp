@@ -3,7 +3,7 @@ package transport
 import (
 	"testing"
 
-	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,12 +25,12 @@ func (m *MockTransport) RegisterHandler(method string, handler MessageHandler) {
 	m.handlers[method] = handler
 }
 
-func (m *MockTransport) HandleConnection(c *echo.Context) error {
+func (m *MockTransport) HandleConnection(c echo.Context) error {
 	// Mock implementation
 	return nil
 }
 
-func (m *MockTransport) HandleMessage(c *echo.Context) error {
+func (m *MockTransport) HandleMessage(c echo.Context) error {
 	// Mock implementation
 	return nil
 }

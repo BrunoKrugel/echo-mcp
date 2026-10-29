@@ -11,6 +11,13 @@ import (
 	"strings"
 )
 
+// JSON schema keys and values reused across schema generation.
+const (
+	schemaTypeObject    = "object"
+	schemaTypeKey       = "type"
+	schemaPropertiesKey = "properties"
+)
+
 type MCPMessage struct {
 	Params  any             `json:"params,omitempty"`
 	Result  any             `json:"result,omitempty"`
@@ -51,8 +58,8 @@ type RegisteredSchemaInfo struct {
 func GetSchema(input any) map[string]any {
 	if input == nil {
 		return map[string]any{
-			"type":       "object",
-			"properties": map[string]any{},
+			schemaTypeKey:       schemaTypeObject,
+			schemaPropertiesKey: map[string]any{},
 		}
 	}
 
@@ -62,8 +69,8 @@ func GetSchema(input any) map[string]any {
 	if typ.Kind() == reflect.Pointer {
 		if val.IsNil() {
 			return map[string]any{
-				"type":       "object",
-				"properties": map[string]any{},
+				schemaTypeKey:       schemaTypeObject,
+				schemaPropertiesKey: map[string]any{},
 			}
 		}
 		typ = typ.Elem()
@@ -72,8 +79,8 @@ func GetSchema(input any) map[string]any {
 	if typ.Kind() != reflect.Struct {
 		fmt.Printf("Warning: Cannot generate schema for non-struct type: %s\n", typ.Kind())
 		return map[string]any{
-			"type":       "object",
-			"properties": map[string]any{},
+			schemaTypeKey:       schemaTypeObject,
+			schemaPropertiesKey: map[string]any{},
 		}
 	}
 
@@ -114,8 +121,8 @@ func GetSchema(input any) map[string]any {
 	}
 
 	schema := map[string]any{
-		"type":       "object",
-		"properties": properties,
+		schemaTypeKey:       schemaTypeObject,
+		schemaPropertiesKey: properties,
 	}
 
 	if len(required) > 0 {
@@ -139,29 +146,29 @@ func reflectType(t reflect.Type) map[string]any {
 
 	switch underlyingType.Kind() {
 	case reflect.String:
-		return map[string]any{"type": "string"}
+		return map[string]any{schemaTypeKey: "string"}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return map[string]any{"type": "integer"}
+		return map[string]any{schemaTypeKey: "integer"}
 	case reflect.Float32, reflect.Float64:
-		return map[string]any{"type": "number"}
+		return map[string]any{schemaTypeKey: "number"}
 	case reflect.Bool:
-		return map[string]any{"type": "boolean"}
+		return map[string]any{schemaTypeKey: "boolean"}
 	case reflect.Slice, reflect.Array:
 		return map[string]any{
-			"type":  "array",
-			"items": reflectType(underlyingType.Elem()),
+			schemaTypeKey: "array",
+			"items":       reflectType(underlyingType.Elem()),
 		}
 	case reflect.Map:
 		return map[string]any{
-			"type":                 "object",
+			schemaTypeKey:          schemaTypeObject,
 			"additionalProperties": reflectType(underlyingType.Elem()),
 		}
 	case reflect.Struct:
 		// For nested structs, generate nested schema
 		return GetSchema(reflect.New(underlyingType).Interface())
 	default:
-		return map[string]any{"type": "string"} // fallback
+		return map[string]any{schemaTypeKey: "string"} // fallback
 	}
 }
 

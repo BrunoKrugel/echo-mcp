@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -168,7 +168,7 @@ func TestMount(t *testing.T) {
 
 	t.Run("Should register routes after mounting", func(t *testing.T) {
 		e := echo.New()
-		e.GET("/test", func(c *echo.Context) error {
+		e.GET("/test", func(c echo.Context) error {
 			return c.JSON(http.StatusOK, map[string]string{"message": "test"})
 		})
 
@@ -186,7 +186,7 @@ func TestShouldIncludeRoute(t *testing.T) {
 		e := echo.New()
 		mcp := New(e)
 
-		route := echo.RouteInfo{Path: "/users", Method: "GET"}
+		route := &echo.Route{Path: "/users", Method: "GET"}
 		result := mcp.shouldIncludeRoute(route)
 
 		assert.True(t, result)
@@ -197,8 +197,8 @@ func TestShouldIncludeRoute(t *testing.T) {
 		mcp := New(e)
 		mcp.RegisterEndpoints([]string{"/users", "/orders"})
 
-		userRoute := echo.RouteInfo{Path: "/users", Method: "GET"}
-		healthRoute := echo.RouteInfo{Path: "/health", Method: "GET"}
+		userRoute := &echo.Route{Path: "/users", Method: "GET"}
+		healthRoute := &echo.Route{Path: "/health", Method: "GET"}
 
 		assert.True(t, mcp.shouldIncludeRoute(userRoute))
 		assert.False(t, mcp.shouldIncludeRoute(healthRoute))
@@ -209,8 +209,8 @@ func TestShouldIncludeRoute(t *testing.T) {
 		mcp := New(e)
 		mcp.ExcludeEndpoints([]string{"/health", "/metrics"})
 
-		userRoute := echo.RouteInfo{Path: "/users", Method: "GET"}
-		healthRoute := echo.RouteInfo{Path: "/health", Method: "GET"}
+		userRoute := &echo.Route{Path: "/users", Method: "GET"}
+		healthRoute := &echo.Route{Path: "/health", Method: "GET"}
 
 		assert.True(t, mcp.shouldIncludeRoute(userRoute))
 		assert.False(t, mcp.shouldIncludeRoute(healthRoute))
@@ -222,7 +222,7 @@ func TestShouldIncludeRoute(t *testing.T) {
 		mcp.RegisterEndpoints([]string{"/users"})
 		mcp.ExcludeEndpoints([]string{"/users"}) // Should be ignored
 
-		userRoute := echo.RouteInfo{Path: "/users", Method: "GET"}
+		userRoute := &echo.Route{Path: "/users", Method: "GET"}
 
 		assert.True(t, mcp.shouldIncludeRoute(userRoute))
 	})
@@ -286,7 +286,7 @@ func TestHandleInitialize(t *testing.T) {
 func TestHandleToolsList(t *testing.T) {
 	t.Run("Should return tools list", func(t *testing.T) {
 		e := echo.New()
-		e.GET("/test", func(c *echo.Context) error {
+		e.GET("/test", func(c echo.Context) error {
 			return c.JSON(http.StatusOK, "test")
 		})
 
@@ -409,7 +409,7 @@ func TestBuildRequestPath(t *testing.T) {
 func TestDefaultExecuteToolInProcess(t *testing.T) {
 	t.Run("Should execute GET tool in-process without network call", func(t *testing.T) {
 		e := echo.New()
-		e.GET("/users/:id", func(c *echo.Context) error {
+		e.GET("/users/:id", func(c echo.Context) error {
 			id := c.Param("id")
 			return c.JSON(http.StatusOK, map[string]string{"id": id, "name": "alice"})
 		})
@@ -431,7 +431,7 @@ func TestDefaultExecuteToolInProcess(t *testing.T) {
 
 	t.Run("Should execute POST tool with JSON body in-process", func(t *testing.T) {
 		e := echo.New()
-		e.POST("/users", func(c *echo.Context) error {
+		e.POST("/users", func(c echo.Context) error {
 			var body map[string]any
 			if err := c.Bind(&body); err != nil {
 				return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -490,14 +490,14 @@ func TestGetServerInfo(t *testing.T) {
 func TestFilterRoutes(t *testing.T) {
 	t.Run("Should filter out MCP routes", func(t *testing.T) {
 		e := echo.New()
-		e.GET("/test", func(c *echo.Context) error { return nil })
-		e.POST("/mcp", func(c *echo.Context) error { return nil })
+		e.GET("/test", func(c echo.Context) error { return nil })
+		e.POST("/mcp", func(c echo.Context) error { return nil })
 
 		mcp := New(e)
 		err := mcp.Mount("/mcp")
 		require.NoError(t, err)
 
-		routes := e.Router().Routes()
+		routes := e.Routes()
 		filtered := mcp.filterRoutes(routes)
 
 		// Should filter out the MCP route
@@ -518,13 +518,13 @@ func TestFilterRoutes(t *testing.T) {
 
 	t.Run("Should apply endpoint filtering", func(t *testing.T) {
 		e := echo.New()
-		e.GET("/users", func(c *echo.Context) error { return nil })
-		e.GET("/health", func(c *echo.Context) error { return nil })
+		e.GET("/users", func(c echo.Context) error { return nil })
+		e.GET("/health", func(c echo.Context) error { return nil })
 
 		mcp := New(e)
 		mcp.RegisterEndpoints([]string{"/users"})
 
-		routes := e.Router().Routes()
+		routes := e.Routes()
 		filtered := mcp.filterRoutes(routes)
 
 		// Should only include /users

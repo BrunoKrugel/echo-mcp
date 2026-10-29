@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+# Separate dist dir so the root and v5 module releases don't clash.
+dist: dist5
+
+# Release config for the Echo v5 module (github.com/BrunoKrugel/echo-mcp/v5).
+# Tagged as v5.x.y (the v5 major version of the module lives in the v5/ directory).
+# Deployed by .github/workflows/deploy.yaml together with the root (Echo v4) release.
+
+before:
+  hooks:
+    - cd v5 && go mod tidy
+    - cd v5 && go test ./...
+
+# For Go libraries, we typically don't need binary builds
+# Instead, we focus on source code releases and proper tagging
+builds:
+  - skip: true
+
+# Skip archives since this is a library, not a binary distribution
+archives:
+  - formats: [tar.gz]
+    files:
+      - none*
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: Others
+      order: 999
+
+release:
+  github:
+    owner: BrunoKrugel
+    name: echo-mcp
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## Echo-MCP v5 ({{ .Tag }})
+
+    This release contains the Echo v5 version of Echo-MCP, a Go library for integrating Echo v5 web applications with MCP (Model Context Protocol).
+
+    ### Installation
+
+    ```bash
+    go get github.com/BrunoKrugel/echo-mcp/v5@{{ .Tag }}
+    ```
+
+  footer: |
+    ## Usage
+
+    Import the library in your Go project:
+
+    ```go
+    import server "github.com/BrunoKrugel/echo-mcp/v5"
+    ```
+
+    Note: this module only works with Echo v5 (`github.com/labstack/echo/v5`). For Echo v4 applications use the root module `github.com/BrunoKrugel/echo-mcp`.
+
+    ---
+
+    **Full Changelog**: https://github.com/BrunoKrugel/echo-mcp/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).

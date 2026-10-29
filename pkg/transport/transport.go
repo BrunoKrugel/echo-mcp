@@ -1,6 +1,6 @@
 package transport
 
-import "github.com/labstack/echo/v5"
+import "github.com/labstack/echo/v4"
 
 // MessageHandler defines the function signature for handling MCP messages
 type MessageHandler func(params any) (any, error)
@@ -11,10 +11,10 @@ type Transport interface {
 	RegisterHandler(method string, handler MessageHandler)
 
 	// HandleConnection handles incoming MCP connections
-	HandleConnection(c *echo.Context) error
+	HandleConnection(c echo.Context) error
 
 	// HandleMessage processes incoming MCP messages
-	HandleMessage(c *echo.Context) error
+	HandleMessage(c echo.Context) error
 
 	// NotifyToolsChanged sends a notification that tools have changed
 	NotifyToolsChanged()

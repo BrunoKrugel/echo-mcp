@@ -125,8 +125,8 @@ func convertOperation(op *Operation) SwaggerOperation {
 	if op.RequestBody != nil {
 		if mt, ok := op.RequestBody.Content["application/json"]; ok {
 			operation.Parameters = append(operation.Parameters, SwaggerParameter{
-				Name:     "body",
-				In:       "body",
+				Name:     bodyParam,
+				In:       bodyParam,
 				Required: true,
 				Schema:   convertSchema(mt.Schema),
 			})
