@@ -15,11 +15,29 @@ Inspired by [gin-mcp](https://github.com/ckanthony/gin-mcp) but for the [Echo fr
 - **Multiple Schema Sources**: Support for Swaggo, raw OpenAPI YAML/JSON, and manual schemas
 - **Filtering**: Include/exclude endpoints with wildcard patterns
 - **MCP Compatible**: Works with any agent that supports MCP.
+- **Echo v5**: Integrates with labstack Echo v5 (breaking: v4 applications must migrate, see [Echo Versions](#echo-versions)).
+
+## Echo Versions
+
+Echo-MCP follows the Echo major version it is built against. Each Echo major lives in its own Go module so that v4 and v5 applications can be supported side by side:
+
+| Echo version | Import path | Repository location |
+|--------------|-------------|---------------------|
+| **Echo v4** | `github.com/BrunoKrugel/echo-mcp` | repository root |
+| **Echo v5** | `github.com/BrunoKrugel/echo-mcp/v5` | `v5/` directory |
+
+Since Echo v5 requires `*echo.Context` handlers instead of `echo.Context` and a new router API, the echo-mcp/v5 module is not compatible with Echo v4 applications and vice versa. Applications on Echo v4 should use the root module; applications on Echo v5 should use `github.com/BrunoKrugel/echo-mcp/v5` (see the [`v5` branch](https://github.com/labstack/echo/tree/v5) for Echo framework v5 docs).
 
 ## Installation
 
+Use the module matching your Echo version:
+
 ```bash
+# Echo v4 applications
 go get github.com/BrunoKrugel/echo-mcp
+
+# Echo v5 applications
+go get github.com/BrunoKrugel/echo-mcp/v5
 ```
 
 ## Quick Start
@@ -29,15 +47,15 @@ package main
 
 import (
     "net/http"
-    server "github.com/BrunoKrugel/echo-mcp"
-    "github.com/labstack/echo/v4"
+    server "github.com/BrunoKrugel/echo-mcp/v5"
+    "github.com/labstack/echo/v5"
 )
 
 func main() {
     e := echo.New()
 
     // Existing API routes
-    e.GET("/ping", func(c echo.Context) error {
+    e.GET("/ping", func(c *echo.Context) error {
         return c.JSON(http.StatusOK, map[string]string{"message": "pong"})
     })
 
@@ -65,7 +83,7 @@ If you already use Swaggo for Swagger documentation, enable automatic schema gen
 // @Param id path int true "User ID" minimum(1)
 // @Success 200 {object} User
 // @Router /users/{id} [get]
-func GetUser(c echo.Context) error {
+func GetUser(c *echo.Context) error {
     // Your handler code
 }
 
@@ -91,7 +109,7 @@ If you use other OpenAPI libraries like `swaggest/openapi-go`, you can pass a ra
 ```go
 import (
     "github.com/swaggest/openapi-go/openapi3"
-    server "github.com/BrunoKrugel/echo-mcp"
+    server "github.com/BrunoKrugel/echo-mcp/v5"
 )
 
 func main() {
@@ -231,5 +249,4 @@ npx @modelcontextprotocol/inspector http://localhost:8080/mcp
 - [Swaggo](https://github.com/swaggo/swag) - Swagger documentation generator
 - [swaggest/openapi-go](https://github.com/swaggest/openapi-go) - OpenAPI 3.0 toolkit for Go
 - [Echo Framework](https://echo.labstack.com/) - High performance Go web framework
-- [Echo Swagger](https://github.com/swaggo/echo-swagger) - Swagger UI middleware for Echo
 - [Model Context Protocol](https://modelcontextprotocol.io/) - Universal protocol for AI-tool interaction

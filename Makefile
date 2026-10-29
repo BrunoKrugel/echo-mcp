@@ -30,12 +30,24 @@ run: ## Execute the application locally
 	go run -race .
 
 .PHONY: swag
-swag: ## Run the swaggo example application
+swag: ## Run the swaggo example application (root module, Echo v4)
 	go run -race ./examples/simple/main.go
 
 .PHONY: openapi
-openapi: ## Run the openapi example application
+openapi: ## Run the openapi example application (root module, Echo v4)
 	go run -race ./examples/complex/main.go
+
+.PHONY: run-v5
+run-v5: ## Execute the Echo v5 module application locally
+	go run -race ./v5
+
+.PHONY: swag-v5
+swag-v5: ## Run the swaggo example application (Echo v5 module)
+	go run -race ./v5/examples/simple/main.go
+
+.PHONY: openapi-v5
+openapi-v5: ## Run the openapi example application (Echo v5 module)
+	go run -race ./v5/examples/complex/main.go
 
 ########################################################################################################################
 ##@ Testing
@@ -50,6 +62,7 @@ mcp: ## Run the mcp client inspector
 test: ## Runs tests
 	go install github.com/mfridman/tparse@main | go mod tidy
 	PROFILE=local go test -parallel 10 -json -cover ./... | tparse -all -pass -trimpath=github.com/BrunoKrugel/echo-mcp/
+	cd v5 && PROFILE=local go test -parallel 10 -json -cover ./... | tparse -all -pass -trimpath=github.com/BrunoKrugel/echo-mcp/v5/
 
 ########################################################################################################################
 ##@ Quality
@@ -60,12 +73,15 @@ format: ## Format code and organize imports
 	goimports -w .
 	go fmt ./...
 	fieldalignment -fix ./...
+	cd v5 && goimports -w . && go fmt ./... && fieldalignment -fix ./...
 
 .PHONY: modernize
 modernize: ## Modernize code
 	go run golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest -fix -test ./...
+	cd v5 && go run golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@latest -fix -test ./...
 
 .PHONY: lint
-lint: ## Runs golangci-lint
+lint: ## Runs golangci-lint (root module and Echo v5 module)
 	golangci-lint run --fix
+	cd v5 && golangci-lint run --fix
 

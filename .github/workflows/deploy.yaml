@@ -24,39 +24,68 @@ jobs:
         with:
           go-version: stable
 
-      - name: Get latest semver tag
-        id: tag
+      # Two tag spaces live in this repo:
+      #   root module (Echo v4):  github.com/BrunoKrugel/echo-mcp    -> tags v[0-1].x.y
+      #   v5    module (Echo v5): github.com/BrunoKrugel/echo-mcp/v5 -> tags v5.x.y
+      # Root tags must stay under v2 so they never collide with the /v5 module's
+      # plain v5.x.y tags.
+      - name: Get latest root (Echo v4) tag
+        id: root_tag
         run: |
           set -e
-          latest=$(git tag --list 'v[0-9]*' --sort=v:refname | tail -n1)
+          latest=$(git tag --list 'v[0-1]*' --sort=v:refname | tail -n1)
           if [ -z "$latest" ]; then
             latest="v0.0.0"
           fi
           echo "latest=$latest" >> $GITHUB_OUTPUT
 
-      - name: Bump patch version
-        id: bump
+      - name: Bump patch version (Echo v4)
+        id: bump_root
         run: |
           set -e
-          latest=${{ steps.tag.outputs.latest }}
+          latest=${{ steps.root_tag.outputs.latest }}
           ver=${latest#v}
           IFS='.' read -r major minor patch <<< "$ver"
           patch=$((patch + 1))
           new_tag="v${major}.${minor}.${patch}"
           echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
 
-      - name: Create git tag and push
+      - name: Get latest Echo v5 module tag
+        id: v5_tag
+        run: |
+          set -e
+          latest=$(git tag --list 'v5.*' --sort=v:refname | tail -n1)
+          echo "latest=$latest" >> $GITHUB_OUTPUT
+
+      - name: Bump patch version (Echo v5)
+        id: bump_v5
+        run: |
+          set -e
+          latest=${{ steps.v5_tag.outputs.latest }}
+          if [ -z "$latest" ]; then
+            echo "new_tag=v5.0.0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          ver=${latest#v}
+          IFS='.' read -r major minor patch <<< "$ver"
+          patch=$((patch + 1))
+          new_tag="v${major}.${minor}.${patch}"
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+
+      - name: Create git tags and push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          new=${{ steps.bump.outputs.new_tag }}
+          root_new=${{ steps.bump_root.outputs.new_tag }}
+          v5_new=${{ steps.bump_v5.outputs.new_tag }}
           # ensure remote uses token so push works in all runners
           git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}"
-          git tag -a "$new" -m "Release $new"
-          git push origin "$new"
+          git tag -a "$root_new" -m "Release $root_new"
+          git tag -a "$v5_new" -m "Release $v5_new (Echo v5 module)"
+          git push origin "$root_new" "$v5_new"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -65,7 +94,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run GoReleaser
+      - name: Run tests (Echo v4 module)
+        run: go test ./...
+
+      - name: Run tests (Echo v5 module)
+        run: cd v5 && go test ./...
+
+      - name: Release Echo v4 module
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
@@ -73,3 +108,14 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ steps.bump_root.outputs.new_tag }}
+
+      - name: Release Echo v5 module
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean --config .goreleaser-v5.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ steps.bump_v5.outputs.new_tag }}
